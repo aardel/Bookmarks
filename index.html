@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookmark Manager</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body class="light-mode">
+    <header>
+        <div class="header-container">
+            <h1>Bookmark Manager</h1>
+            <div class="search-container">
+                <input type="text" id="search-bookmarks" placeholder="Search bookmarks...">
+                <button id="search-clear" class="search-clear hidden">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="header-controls">
+                <button id="theme-toggle" title="Toggle Dark/Light mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button id="grid-size-toggle" title="Adjust grid size">
+                    <i class="fas fa-grip"></i>
+                </button>
+                <button id="admin-toggle" title="Admin mode">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button id="login-toggle" title="Login">
+                    <i class="fas fa-user"></i>
+                </button>
+            </div>
+        </div>
+        <div class="advanced-search-container">
+            <label for="search-category">Category:</label>
+            <select id="search-category">
+                <option value="all">All</option>
+                <!-- Categories will be added dynamically -->
+            </select>
+            <label for="search-tags">Tags:</label>
+            <input type="text" id="search-tags" placeholder="Enter tags separated by commas">
+            <label for="sort-bookmarks">Sort By:</label>
+            <select id="sort-bookmarks">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="alphabetical">Alphabetical</option>
+                <option value="most-visited">Most Visited</option>
+            </select>
+        </div>
+    </header>
+
+    <main>
+        <!-- Category filters -->
+        <section id="category-filters" class="category-filters">
+            <!-- Categories will be added dynamically -->
+            <button class="category-filter active" data-category="all">All</button>
+        </section>
+        
+        <!-- Grid view for bookmarks -->
+        <section id="bookmark-grid" class="bookmark-container">
+            <!-- Bookmark items will be dynamically added here -->
+        </section>
+
+        <!-- Admin Panel (Hidden by default) -->
+        <section id="admin-panel" class="admin-panel hidden">
+            <div class="admin-header">
+                <h2>Admin Panel</h2>
+                <button id="close-admin">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="admin-section">
+                <h3>Add New Bookmark</h3>
+                <form id="add-bookmark-form">
+                    <div class="form-group">
+                        <label for="bookmark-title">Title:</label>
+                        <input type="text" id="bookmark-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookmark-url">URL:</label>
+                        <input type="url" id="bookmark-url" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookmark-icon">Icon URL (optional):</label>
+                        <input type="url" id="bookmark-icon">
+                    </div>
+                    <div class="form-group">
+                        <label for="bookmark-category">Category:</label>
+                        <input type="text" id="bookmark-category" list="categories-list" placeholder="Type or select a category">
+                        <datalist id="categories-list">
+                            <!-- Categories will be added dynamically -->
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="bookmark-color">Background Color:</label>
+                        <input type="color" id="bookmark-color" value="#ffffff">
+                    </div>
+                    <div class="form-group">
+                        <label for="bookmark-tags">Tags:</label>
+                        <input type="text" id="bookmark-tags" placeholder="Enter tags separated by commas">
+                    </div>
+                    <div class="form-group">
+                        <label for="bookmark-reminder">Reminder (in days):</label>
+                        <input type="number" id="bookmark-reminder" min="1" placeholder="Enter number of days">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Bookmark</button>
+                </form>
+                
+                <div class="bookmarklet-container">
+                    <h4>Quick Add Bookmarklet</h4>
+                    <p>Drag this to your bookmarks bar to quickly add sites to your bookmark manager:</p>
+                    <a href="javascript:(function(){var url=window.location.href;var title=document.title;window.open('index.html?action=add&url='+encodeURIComponent(url)+'&title='+encodeURIComponent(title),'_blank');})();" 
+                       class="bookmarklet">+ Add to My Bookmarks</a>
+                </div>
+            </div>
+            
+            <div class="admin-section">
+                <h3>Manage Bookmarks</h3>
+                <div id="bookmarks-list">
+                    <!-- Bookmarks will be listed here for editing/deletion -->
+                </div>
+            </div>
+            
+            <div class="admin-section">
+                <h3>Categories</h3>
+                <div class="category-manager">
+                    <div class="form-group">
+                        <label for="new-category">Add Category:</label>
+                        <div class="category-add-container">
+                            <input type="text" id="new-category">
+                            <button id="add-category-btn" class="btn">Add</button>
+                        </div>
+                    </div>
+                    <div id="categories-container">
+                        <!-- Categories will be listed here for management -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-section">
+                <h3>Settings</h3>
+                <div class="form-group">
+                    <label for="grid-columns">Grid Columns:</label>
+                    <input type="range" id="grid-columns" min="2" max="8" value="4">
+                    <span id="grid-columns-value">4</span>
+                </div>
+                <div class="form-group">
+                    <label for="animation-toggle">Animations:</label>
+                    <label class="switch">
+                        <input type="checkbox" id="animation-toggle" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="sort-bookmarks">Sort Bookmarks By:</label>
+                    <select id="sort-bookmarks" class="form-select">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="alphabetical">Alphabetical</option>
+                        <option value="category">Category</option>
+                    </select>
+                </div>
+                <div class="backup-restore">
+                    <button id="backup-btn" class="btn">Backup Bookmarks</button>
+                    <button id="restore-btn" class="btn">Restore Bookmarks</button>
+                    <input type="file" id="restore-file" accept=".json" hidden>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3>Import/Export Bookmarks</h3>
+                <div class="import-export">
+                    <button id="import-btn" class="btn">Import Bookmarks</button>
+                    <input type="file" id="import-file" accept=".json,.html" hidden>
+                    <button id="export-btn" class="btn">Export Bookmarks</button>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3>Bookmark Analytics</h3>
+                <div id="analytics-container">
+                    <p>Most Visited Bookmarks:</p>
+                    <ul id="most-visited-list"></ul>
+                    <p>Bookmark Trends:</p>
+                    <ul id="bookmark-trends-list"></ul>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3>Theme Editor</h3>
+                <form id="theme-editor-form">
+                    <div class="form-group">
+                        <label for="theme-bg-primary">Background Primary:</label>
+                        <input type="color" id="theme-bg-primary" value="#f8f9fa">
+                    </div>
+                    <div class="form-group">
+                        <label for="theme-bg-secondary">Background Secondary:</label>
+                        <input type="color" id="theme-bg-secondary" value="#ffffff">
+                    </div>
+                    <div class="form-group">
+                        <label for="theme-text-primary">Text Primary:</label>
+                        <input type="color" id="theme-text-primary" value="#333333">
+                    </div>
+                    <div class="form-group">
+                        <label for="theme-text-secondary">Text Secondary:</label>
+                        <input type="color" id="theme-text-secondary" value="#666666">
+                    </div>
+                    <div class="form-group">
+                        <label for="theme-accent-color">Accent Color:</label>
+                        <input type="color" id="theme-accent-color" value="#4a6da7">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Theme</button>
+                </form>
+            </div>
+
+            <div class="admin-section">
+                <h3>Notifications</h3>
+                <div id="notifications-container">
+                    <p>No notifications</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Login Modal -->
+        <div id="login-modal" class="login-modal hidden">
+            <div class="login-content">
+                <h3>Login</h3>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <div class="login-actions">
+                        <button type="button" id="cancel-login" class="btn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Profile Management -->
+        <section id="profile-section" class="profile-section hidden">
+            <h3>Welcome, <span id="profile-username"></span></h3>
+            <button id="logout-btn" class="btn">Logout</button>
+        </section>
+    </main>
+    
+    <!-- Quick Add Modal -->
+    <div id="quick-add-modal" class="quick-add-modal hidden">
+        <div class="quick-add-content">
+            <h3>Add New Bookmark</h3>
+            <form id="quick-add-form">
+                <div class="form-group">
+                    <label for="quick-title">Title:</label>
+                    <input type="text" id="quick-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="quick-url">URL:</label>
+                    <input type="url" id="quick-url" required>
+                </div>
+                <div class="form-group">
+                    <label for="quick-category">Category:</label>
+                    <input type="text" id="quick-category" list="quick-categories-list" placeholder="Type or select a category">
+                    <datalist id="quick-categories-list">
+                        <!-- Categories will be added dynamically -->
+                    </datalist>
+                </div>
+                <div class="quick-actions">
+                    <button type="button" id="cancel-quick-add" class="btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Bookmark</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Templates -->
+    <template id="bookmark-template">
+        <div class="bookmark-item">
+            <div class="bookmark-icon">
+                <img src="" alt="">
+            </div>
+            <div class="bookmark-title"></div>
+            <div class="bookmark-category"></div>
+            <div class="bookmark-actions hidden">
+                <button class="edit-bookmark" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="delete-bookmark" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+                <button class="share-bookmark" title="Share">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Keyboard shortcuts help -->
+    <div id="keyboard-shortcuts" class="keyboard-shortcuts hidden">
+        <div class="shortcuts-content">
+            <h3>Keyboard Shortcuts</h3>
+            <ul>
+                <li><kbd>/</kbd> or <kbd>Ctrl</kbd>+<kbd>F</kbd> - Search bookmarks</li>
+                <li><kbd>Esc</kbd> - Close panels</li>
+                <li><kbd>?</kbd> - Show this help</li>
+                <li><kbd>A</kbd> - Open admin panel</li>
+                <li><kbd>T</kbd> - Toggle dark/light mode</li>
+                <li><kbd>G</kbd> - Cycle grid size</li>
+            </ul>
+            <button id="close-shortcuts" class="btn">Close</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
