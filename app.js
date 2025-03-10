@@ -1,3 +1,35 @@
+// Define sortBookmarks function at the very top
+function sortBookmarks(bookmarks) {
+    switch (state.sortBy) {
+        case 'newest':
+            return bookmarks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        case 'oldest':
+            return bookmarks.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        case 'alphabetical':
+            return bookmarks.sort((a, b) => a.title.localeCompare(b.title));
+        case 'most-visited':
+            return bookmarks.sort((a, b) => (b.visits || 0) - (a.visits || 0));
+        default:
+            return bookmarks;
+    }
+}
+
+// Define updateGridColumns function
+function updateGridColumns() {
+    elements.bookmarkGrid.style.gridTemplateColumns = `repeat(${state.gridColumns}, 1fr)`;
+    if (elements.gridColumnsValue) {
+        elements.gridColumnsValue.textContent = state.gridColumns;
+    }
+}
+
+// Handle grid size change from the range input
+function handleGridSizeChange(e) {
+    state.gridColumns = parseInt(e.target.value, 10);
+    elements.gridColumnsValue.textContent = state.gridColumns;
+    updateGridColumns();
+    saveToLocalStorage();
+}
+
 // App State
 const state = {
     bookmarks: [],
@@ -9,7 +41,8 @@ const state = {
     animationsEnabled: true,
     searchCategory: 'all',
     searchTags: [],
-    sortBy: 'newest'
+    sortBy: 'newest',
+    viewMode: 'grid' // Add new viewMode state property
 };
 
 // DOM Elements
@@ -171,6 +204,9 @@ function setupEventListeners() {
     integrationElements.pocketBtn.addEventListener('click', importFromPocket);
     integrationElements.instapaperBtn.addEventListener('click', importFromInstapaper);
     integrationElements.evernoteBtn.addEventListener('click', importFromEvernote);
+
+    // Add view toggle event listener
+    document.getElementById('view-toggle').addEventListener('click', toggleViewMode);
 }
 
 // Handle Search
@@ -458,13 +494,17 @@ function handleAddBookmark(e) {
     document.getElementById('bookmark-color').value = '#ffffff';
 }
 
-// Add a new bookmark
+// Add a new bookmark with enhanced favicon handling
 function addBookmark(bookmarkData) {
+    const faviconData = bookmarkData.icon || getFaviconUrl(bookmarkData.url);
+    
     const newBookmark = {
         id: generateId(),
         title: bookmarkData.title,
         url: bookmarkData.url,
-        icon: bookmarkData.icon,
+        // If icon is a string, use it directly, otherwise use primary from getFaviconUrl
+        icon: typeof bookmarkData.icon === 'string' ? bookmarkData.icon : faviconData.primary,
+        iconFallbacks: typeof bookmarkData.icon === 'object' ? faviconData.fallbacks : [],
         color: bookmarkData.color,
         category: bookmarkData.category || '',
         tags: bookmarkData.tags || [],
@@ -647,6 +687,52 @@ function trackBookmarkVisit(bookmarkId) {
     updateAnalytics();
 }
 
+// Update analytics display in the admin panel
+function updateAnalytics() {
+    const mostVisitedEl = document.getElementById('most-visited-list');
+    const trendsEl = document.getElementById('bookmark-trends-list');
+    
+    if (!mostVisitedEl || !trendsEl) return;
+    
+    // Sort bookmarks by visits
+    const sortedByVisits = [...state.bookmarks]
+        .filter(b => b.visits && b.visits > 0)
+        .sort((a, b) => (b.visits || 0) - (a.visits || 0))
+        .slice(0, 5); // Top 5
+    
+    // Display most visited bookmarks
+    mostVisitedEl.innerHTML = '';
+    if (sortedByVisits.length === 0) {
+        mostVisitedEl.innerHTML = '<li>No visit data available yet</li>';
+    } else {
+        sortedByVisits.forEach(bookmark => {
+            const li = document.createElement('li');
+            li.innerHTML = `${bookmark.title} - ${bookmark.visits} visits`;
+            mostVisitedEl.appendChild(li);
+        });
+    }
+    
+    // Calculate category distribution
+    const categoryStats = {};
+    state.bookmarks.forEach(bookmark => {
+        const category = bookmark.category || 'Uncategorized';
+        if (!categoryStats[category]) {
+            categoryStats[category] = 0;
+        }
+        categoryStats[category]++;
+    });
+    
+    // Display category trends
+    trendsEl.innerHTML = '';
+    Object.entries(categoryStats)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([category, count]) => {
+            const li = document.createElement('li');
+            li.innerHTML = `${category}: ${count} bookmarks`;
+            trendsEl.appendChild(li);
+        });
+}
+
 // Backup bookmarks to JSON file
 function backupBookmarks() {
     const data = JSON.stringify({
@@ -755,6 +841,17 @@ function handleImportBookmarks(e) {
 
 // Handle export bookmarks
 function handleExportBookmarks() {
+    const exportFormat = prompt('Export format (json or csv):', 'json');
+    
+    if (exportFormat.toLowerCase() === 'csv') {
+        exportBookmarksToCSV();
+    } else {
+        exportBookmarksToJSON();
+    }
+}
+
+// Export bookmarks to JSON
+function exportBookmarksToJSON() {
     const data = JSON.stringify({
         bookmarks: state.bookmarks,
         categories: state.categories,
@@ -770,6 +867,40 @@ function handleExportBookmarks() {
     a.download = `bookmarks_export_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
 
+    // Clean up
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+    }, 100);
+}
+
+// Export bookmarks to CSV
+function exportBookmarksToCSV() {
+    // CSV headers
+    const csvRows = ['Title,URL,Category,Tags,Created At'];
+    
+    // Add bookmark data
+    state.bookmarks.forEach(bookmark => {
+        const tags = bookmark.tags ? bookmark.tags.join(';') : '';
+        // Escape commas in fields
+        const escapedTitle = bookmark.title ? `"${bookmark.title.replace(/"/g, '""')}"` : '';
+        const escapedUrl = bookmark.url ? `"${bookmark.url.replace(/"/g, '""')}"` : '';
+        const escapedCategory = bookmark.category ? `"${bookmark.category.replace(/"/g, '""')}"` : '';
+        const escapedTags = tags ? `"${tags.replace(/"/g, '""')}"` : '';
+        
+        csvRows.push(`${escapedTitle},${escapedUrl},${escapedCategory},${escapedTags},${bookmark.createdAt}`);
+    });
+    
+    // Combine rows into CSV content
+    const csvContent = csvRows.join('\n');
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bookmarks_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    
     // Clean up
     setTimeout(() => {
         URL.revokeObjectURL(url);
@@ -821,8 +952,11 @@ function renderBookmarks() {
         return;
     }
     
+    const templateId = state.viewMode === 'list' ? 'bookmark-list-template' : 'bookmark-template';
+    const templateElement = document.getElementById(templateId);
+    
     filteredBookmarks.forEach(bookmark => {
-        const clone = document.importNode(elements.bookmarkTemplate.content, true);
+        const clone = document.importNode(templateElement.content, true);
         const bookmarkItem = clone.querySelector('.bookmark-item');
         
         bookmarkItem.dataset.id = bookmark.id;
@@ -839,6 +973,14 @@ function renderBookmarks() {
         iconImg.alt = bookmark.title;
         
         clone.querySelector('.bookmark-title').textContent = bookmark.title;
+        
+        // Add URL display in list view
+        if (state.viewMode === 'list' && clone.querySelector('.bookmark-url')) {
+            const urlDisplay = clone.querySelector('.bookmark-url');
+            urlDisplay.textContent = bookmark.url;
+            urlDisplay.style.fontSize = '0.8rem';
+            urlDisplay.style.color = 'var(--text-secondary)';
+        }
         
         // Add category if present
         const categoryEl = clone.querySelector('.bookmark-category');
@@ -905,13 +1047,30 @@ function renderBookmarksList() {
     });
 }
 
-// Get favicon URL from domain
+// Get favicon URL from domain with enhanced fallbacks
 function getFaviconUrl(url) {
     try {
         const domain = new URL(url).hostname;
-        return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+        
+        // Try multiple potential favicon sources
+        return {
+            url: url,
+            // Primary: Google's favicon service
+            primary: `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
+            // Fallbacks in case the primary source fails
+            fallbacks: [
+                `https://${domain}/favicon.ico`,
+                `https://${domain}/favicon.png`,
+                `https://${domain}/apple-touch-icon.png`,
+                `https://${domain}/apple-touch-icon-precomposed.png`
+            ]
+        };
     } catch (e) {
-        return 'https://www.google.com/s2/favicons?domain=example.com&sz=64';
+        return {
+            url: 'https://example.com',
+            primary: 'https://www.google.com/s2/favicons?domain=example.com&sz=64',
+            fallbacks: []
+        };
     }
 }
 
@@ -938,7 +1097,8 @@ function saveToLocalStorage() {
         categories: state.categories,
         gridColumns: state.gridColumns,
         isDarkMode: state.isDarkMode,
-        animationsEnabled: state.animationsEnabled
+        animationsEnabled: state.animationsEnabled,
+        viewMode: state.viewMode
     }));
 }
 
@@ -975,6 +1135,16 @@ function loadFromLocalStorage() {
                 state.animationsEnabled = parsedData.animationsEnabled;
                 if (elements.animationToggle) {
                     elements.animationToggle.checked = parsedData.animationsEnabled;
+                }
+            }
+
+            if (typeof parsedData.viewMode === 'string') {
+                state.viewMode = parsedData.viewMode;
+                // Apply the saved view mode
+                if (state.viewMode === 'list') {
+                    document.getElementById('bookmark-grid').classList.add('list-view');
+                    const viewToggleIcon = document.getElementById('view-toggle').querySelector('i');
+                    viewToggleIcon.className = 'fas fa-list';
                 }
             }
         } catch (error) {
@@ -1059,18 +1229,57 @@ function addDemoBookmarksIfEmpty() {
 
 // Add a keyboard shortcut for searching
 document.addEventListener('keydown', (e) => {
+    // Skip shortcuts if we're in an input or textarea
+    const isInInput = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA';
+    
     // Ctrl/Cmd + F or just '/' when not in an input field
     if (((e.ctrlKey || e.metaKey) && e.key === 'f') || 
-        (e.key === '/' && 
-        document.activeElement.tagName !== 'INPUT' && 
-        document.activeElement.tagName !== 'TEXTAREA')) {
+        (e.key === '/' && !isInInput)) {
         e.preventDefault();
         elements.searchInput.focus();
     }
     
-    // Esc key to close admin panel
-    if (e.key === 'Escape' && !elements.adminPanel.classList.contains('hidden')) {
+    // Esc key to close admin panel and other modals
+    if (e.key === 'Escape') {
+        if (!elements.adminPanel.classList.contains('hidden')) {
+            toggleAdminPanel();
+        }
+        
+        // Close any other modals that might be open
+        document.querySelectorAll('.edit-modal, .keyboard-shortcuts, .login-modal, .quick-add-modal').forEach(modal => {
+            if (!modal.classList.contains('hidden')) {
+                modal.classList.add('hidden');
+            }
+        });
+    }
+    
+    // ? key to show keyboard shortcuts help
+    if (e.key === '?' && !isInInput) {
+        const keyboardShortcuts = document.getElementById('keyboard-shortcuts');
+        keyboardShortcuts.classList.toggle('hidden');
+        
+        // Add event listener to close button if not already added
+        const closeBtn = document.getElementById('close-shortcuts');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                keyboardShortcuts.classList.add('hidden');
+            });
+        }
+    }
+    
+    // 'A' key to toggle admin panel
+    if (e.key === 'a' && !isInInput) {
         toggleAdminPanel();
+    }
+    
+    // 'T' key to toggle dark/light mode
+    if (e.key === 't' && !isInInput) {
+        toggleTheme();
+    }
+    
+    // 'G' key to cycle grid size
+    if (e.key === 'g' && !isInInput) {
+        cycleGridSize();
     }
 });
 
@@ -1117,6 +1326,8 @@ function checkAuthentication() {
 // Load shared bookmark from URL
 function loadSharedBookmark() {
     const urlParams = new URLSearchParams(window.location.search);
+    
+    // Handle shared bookmark
     const bookmarkId = urlParams.get('bookmark');
     if (bookmarkId) {
         const bookmark = state.bookmarks.find(b => b.id === bookmarkId);
@@ -1124,6 +1335,24 @@ function loadSharedBookmark() {
             alert(`Shared Bookmark:\n\nTitle: ${bookmark.title}\nURL: ${bookmark.url}`);
         } else {
             alert('Bookmark not found.');
+        }
+    }
+    
+    // Handle bookmarklet add action
+    const action = urlParams.get('action');
+    if (action === 'add') {
+        const url = urlParams.get('url');
+        const title = urlParams.get('title');
+        
+        if (url && title) {
+            // Pre-fill the add bookmark form
+            document.getElementById('bookmark-title').value = title;
+            document.getElementById('bookmark-url').value = url;
+            
+            // Show admin panel
+            if (elements.adminPanel.classList.contains('hidden')) {
+                toggleAdminPanel();
+            }
         }
     }
 }
@@ -1163,7 +1392,7 @@ function applyCustomTheme() {
 // Register service worker for offline support
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
+        navigator.serviceWorker.register('./service-worker.js')
             .then(registration => {
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
             })
@@ -1303,6 +1532,38 @@ function importFromEvernote() {
         console.error('Error importing from Evernote:', error);
         alert('Failed to import bookmarks from Evernote.');
     });
+}
+
+// Handle delete bookmark
+function deleteBookmark(bookmarkId) {
+    const bookmarkIndex = state.bookmarks.findIndex(b => b.id === bookmarkId);
+    if (bookmarkIndex === -1) return;
+    
+    state.bookmarks.splice(bookmarkIndex, 1);
+    saveToLocalStorage();
+    renderBookmarks();
+    renderBookmarksList();
+    updateAnalytics();
+}
+
+// Toggle between grid and list view
+function toggleViewMode() {
+    state.viewMode = state.viewMode === 'grid' ? 'list' : 'grid';
+    
+    // Update the icon
+    const viewToggleIcon = document.getElementById('view-toggle').querySelector('i');
+    viewToggleIcon.className = state.viewMode === 'grid' ? 'fas fa-th' : 'fas fa-list';
+    
+    // Apply the view mode to the container
+    const bookmarkGrid = document.getElementById('bookmark-grid');
+    if (state.viewMode === 'list') {
+        bookmarkGrid.classList.add('list-view');
+    } else {
+        bookmarkGrid.classList.remove('list-view');
+    }
+    
+    // Save view mode preference in localStorage
+    saveToLocalStorage();
 }
 
 // Initialize the app when the DOM is loaded

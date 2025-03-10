@@ -45,15 +45,5 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Register service worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => {
-                console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            })
-            .catch(error => {
-                console.error('ServiceWorker registration failed: ', error);
-            });
-    });
-}
+// Note: Removed duplicate service worker registration code
+// Registration should only happen in app.js or index.html, not here

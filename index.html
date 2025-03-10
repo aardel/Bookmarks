@@ -25,6 +25,9 @@
                 <button id="grid-size-toggle" title="Adjust grid size">
                     <i class="fas fa-grip"></i>
                 </button>
+                <button id="view-toggle" title="Toggle Grid/List view">
+                    <i class="fas fa-th"></i>
+                </button>
                 <button id="admin-toggle" title="Admin mode">
                     <i class="fas fa-cog"></i>
                 </button>
@@ -302,6 +305,31 @@
         </div>
     </template>
 
+    <!-- List view template -->
+    <template id="bookmark-list-template">
+        <div class="bookmark-item">
+            <div class="bookmark-icon">
+                <img src="" alt="">
+            </div>
+            <div class="bookmark-info">
+                <div class="bookmark-title"></div>
+                <div class="bookmark-url"></div>
+            </div>
+            <div class="bookmark-category"></div>
+            <div class="bookmark-actions hidden">
+                <button class="edit-bookmark" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="delete-bookmark" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+                <button class="share-bookmark" title="Share">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+            </div>
+        </div>
+    </template>
+
     <!-- Keyboard shortcuts help -->
     <div id="keyboard-shortcuts" class="keyboard-shortcuts hidden">
         <div class="shortcuts-content">
@@ -322,7 +350,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
+                navigator.serviceWorker.register('./service-worker.js')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
