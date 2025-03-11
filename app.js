@@ -1,4 +1,3 @@
-// Define sortBookmarks function at the very top
 function sortBookmarks(bookmarks) {
     switch (state.sortBy) {
         case 'newest':
@@ -9,8 +8,68 @@ function sortBookmarks(bookmarks) {
             return bookmarks.sort((a, b) => a.title.localeCompare(b.title));
         case 'most-visited':
             return bookmarks.sort((a, b) => (b.visits || 0) - (a.visits || 0));
+        case 'category':
+            return bookmarks.sort((a, b) => a.category.localeCompare(b.category));
+        case 'tags':
+            return bookmarks.sort((a, b) => (a.tags.length - b.tags.length));
+        case 'reminder-date':
+            return bookmarks.sort((a, b) => {
+                const aReminder = a.reminderDays ? new Date(a.createdAt).setDate(new Date(a.createdAt).getDate() + a.reminderDays) : Infinity;
+                const bReminder = b.reminderDays ? new Date(b.createdAt).setDate(new Date(b.createdAt).getDate() + b.reminderDays) : Infinity;
+                return aReminder - bReminder;
+            });
+        case 'custom':
+            return applyCustomSorting(bookmarks);
         default:
             return bookmarks;
+    }
+}
+
+function applyCustomSorting(bookmarks) {
+    if (!state.customSortConfig) return bookmarks;
+    const { criteria, order } = state.customSortConfig;
+    return bookmarks.sort((a, b) => {
+        for (let i = 0; i < criteria.length; i++) {
+            const criterion = criteria[i];
+            const comparison = compareByCriterion(a, b, criterion);
+            if (comparison !== 0) return order[i] === 'asc' ? comparison : -comparison;
+        }
+        return 0;
+    });
+}
+
+function compareByCriterion(a, b, criterion) {
+    switch (criterion) {
+        case 'newest':
+            return new Date(b.createdAt) - new Date(a.createdAt);
+        case 'oldest':
+            return new Date(a.createdAt) - new Date(b.createdAt);
+        case 'alphabetical':
+            return a.title.localeCompare(b.title);
+        case 'most-visited':
+            return (b.visits || 0) - (a.visits || 0);
+        case 'category':
+            return a.category.localeCompare(b.category);
+        case 'tags':
+            return (a.tags.length - b.tags.length);
+        case 'reminder-date':
+            const aReminder = a.reminderDays ? new Date(a.createdAt).setDate(new Date(a.createdAt).getDate() + a.reminderDays) : Infinity;
+            const bReminder = b.reminderDays ? new Date(b.createdAt).setDate(new Date(b.createdAt).getDate() + b.reminderDays) : Infinity;
+            return aReminder - bReminder;
+        default:
+            return 0;
+    }
+}
+
+function saveCustomSortConfig(config) {
+    state.customSortConfig = config;
+    localStorage.setItem('customSortConfig', JSON.stringify(config));
+}
+
+function loadCustomSortConfig() {
+    const savedConfig = localStorage.getItem('customSortConfig');
+    if (savedConfig) {
+        state.customSortConfig = JSON.parse(savedConfig);
     }
 }
 
@@ -42,7 +101,8 @@ const state = {
     searchCategory: 'all',
     searchTags: [],
     sortBy: 'newest',
-    viewMode: 'grid' // Add new viewMode state property
+    viewMode: 'grid', // Add new viewMode state property
+    customSortConfig: null // Add customSortConfig property
 };
 
 // DOM Elements
@@ -122,6 +182,7 @@ const integrationElements = {
 // Initialize the application
 function init() {
     loadFromLocalStorage();
+    loadCustomSortConfig(); // Load custom sort config
     renderBookmarks();
     setupEventListeners();
     updateCategoriesUI();

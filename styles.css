@@ -960,7 +960,7 @@ body.animations-enabled .bookmark-item:hover {
     border: 1px solid var(--border-color);
     border-radius: 4px;
     background-color: var(--bg-primary);
-    color: var(--text-primary);
+    color: var (--text-primary);
 }
 
 /* Integrations container */
@@ -1033,4 +1033,54 @@ body.animations-enabled .bookmark-item:hover {
         margin-left: 47px; /* 32px icon + 15px margin */
         margin-top: 5px;
     }
+}
+
+/* Custom Sorting Interface */
+.custom-sorting-interface {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.custom-sorting-interface label {
+    color: var(--text-secondary);
+}
+
+.custom-sorting-interface select,
+.custom-sorting-interface input[type="text"] {
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Visual Indicators for Current Sorting Method */
+.sorting-indicator {
+    display: inline-block;
+    margin-left: 5px;
+    color: var(--accent-color);
+    font-size: 0.9rem;
+}
+
+/* Toggle Button for Ascending/Descending Order */
+#sort-order-toggle {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    margin-left: 15px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+#sort-order-toggle:hover {
+    background-color: var(--tile-hover);
 }
