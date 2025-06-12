@@ -1079,7 +1079,7 @@ class UpdateManager {
     }
     
     viewReleases() {
-        const url = 'https://github.com/aarondelia/bookmark-manager/releases';
+        const url = 'https://github.com/aardel/Bookmarks/releases';
         if (Utils.isElectron() && window.electronAPI?.platform) {
             // Open in external browser
             window.open(url, '_blank');

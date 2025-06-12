@@ -75,8 +75,8 @@ function setupAutoUpdater() {
     // Configure auto updater for GitHub releases
     autoUpdater.setFeedURL({
         provider: 'github',
-        owner: 'aarondelia',
-        repo: 'bookmark-manager',
+        owner: 'aardel',
+        repo: 'Bookmarks',
         private: false
     });
 
@@ -128,7 +128,7 @@ function setupAutoUpdater() {
         } else if (response === 2) {
             // User wants to view release notes
             if (info.releaseNotes) {
-                shell.openExternal(`https://github.com/aarondelia/bookmark-manager/releases/tag/v${info.version}`);
+                shell.openExternal(`https://github.com/aardel/Bookmarks/releases/tag/v${info.version}`);
             }
         }
     });

@@ -59,8 +59,8 @@
     ],
     "publish": {
       "provider": "github",
-      "owner": "aarondelia",
-      "repo": "bookmark-manager"
+      "owner": "aardel",
+      "repo": "Bookmarks"
     },
     "mac": {
       "icon": "assets/icon.icns",
