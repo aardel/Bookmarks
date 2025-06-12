@@ -9,7 +9,6 @@
     "build": "electron-builder",
     "build-mac": "electron-builder --mac",
     "build-win": "electron-builder --win",
-    "build-linux": "electron-builder --linux",
     "pack": "electron-builder --dir",
     "dist": "npm run build",
     "release": "electron-builder --publish=always",
@@ -51,17 +50,19 @@
     "files": [
       "main.js",
       "preload.js",
-      "renderer/**/*",
+      "renderer/index.html",
+      "renderer/app.js",
+      "renderer/styles.css",
+      "renderer/service-worker.js",
       "assets/**/*",
       "!**/*.ts",
       "!**/*.map",
+      "!**/*.md",
       "!**/node_modules",
-      "!renderer/src/modules",
-      "!renderer/src/components",
-      "!renderer/src/services",
-      "!renderer/src/utils",
+      "!renderer/src/**/*",
       "!renderer/app-*.js",
-      "!renderer/app-main.js"
+      "!**/backup*",
+      "!**/.*"
     ],
     "mac": {
       "icon": "assets/icon.icns",
@@ -88,25 +89,6 @@
         }
       ],
       "publisherName": "Aaron Delia",
-      "compression": "maximum"
-    },
-    "linux": {
-      "icon": "assets/icon.png",
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "deb",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "category": "Utility",
       "compression": "maximum"
     },
     "nsis": {
