@@ -54,7 +54,14 @@
       "renderer/**/*",
       "assets/**/*",
       "!**/*.ts",
-      "!**/*.map"
+      "!**/*.map",
+      "!**/node_modules",
+      "!renderer/src/modules",
+      "!renderer/src/components",
+      "!renderer/src/services",
+      "!renderer/src/utils",
+      "!renderer/app-*.js",
+      "!renderer/app-main.js"
     ],
     "mac": {
       "icon": "assets/icon.icns",
@@ -67,7 +74,8 @@
             "arm64"
           ]
         }
-      ]
+      ],
+      "compression": "maximum"
     },
     "win": {
       "icon": "assets/icon.png",
@@ -79,7 +87,8 @@
           ]
         }
       ],
-      "publisherName": "Aaron Delia"
+      "publisherName": "Aaron Delia",
+      "compression": "maximum"
     },
     "linux": {
       "icon": "assets/icon.png",
@@ -97,7 +106,8 @@
           ]
         }
       ],
-      "category": "Utility"
+      "category": "Utility",
+      "compression": "maximum"
     },
     "nsis": {
       "oneClick": false,
