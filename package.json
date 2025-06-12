@@ -56,11 +56,6 @@
       "!**/*.ts",
       "!**/*.map"
     ],
-    "publish": {
-      "provider": "github",
-      "owner": "aardel",
-      "repo": "Bookmarks"
-    },
     "mac": {
       "icon": "assets/icon.icns",
       "category": "public.app-category.productivity",
