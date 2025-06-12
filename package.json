@@ -54,8 +54,7 @@
       "renderer/**/*",
       "assets/**/*",
       "!**/*.ts",
-      "!**/*.map",
-      "!**/node_modules/**"
+      "!**/*.map"
     ],
     "publish": {
       "provider": "github",

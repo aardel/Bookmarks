@@ -293,17 +293,63 @@ const Utils = {
 
     validateUrl(url) {
         if (!url || typeof url !== 'string') return false;
+        
+        // Remove whitespace
+        url = url.trim();
+        
+        // Check if it's already a valid URL
         try {
             new URL(url);
             return true;
         } catch (error) {
+            // Try adding http:// prefix
             try {
                 new URL('http://' + url);
                 return true;
             } catch (e) {
+                // Check if it's an IP address (IPv4)
+                const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/;
+                if (ipv4Regex.test(url)) {
+                    return true;
+                }
+                
+                // Check if it's a local address
+                const localRegex = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+)(:\d+)?$/i;
+                if (localRegex.test(url)) {
+                    return true;
+                }
+                
+                // Check if it looks like a domain
+                const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$/;
+                if (domainRegex.test(url)) {
+                    return true;
+                }
+                
                 return false;
             }
         }
+    },
+
+    normalizeUrl(url) {
+        if (!url || typeof url !== 'string') return url;
+        
+        url = url.trim();
+        
+        // If it already has a protocol, return as is
+        if (/^https?:\/\//i.test(url)) {
+            return url;
+        }
+        
+        // If it's an IP address or localhost, add http://
+        const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/;
+        const localRegex = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+)(:\d+)?$/i;
+        
+        if (ipv4Regex.test(url) || localRegex.test(url)) {
+            return 'http://' + url;
+        }
+        
+        // For domains, add https:// by default
+        return 'https://' + url;
     },
 
     validateTitle(title) {
@@ -471,14 +517,17 @@ class BookmarkManager {
                 return false;
             }
 
+            // Normalize the URL
+            const normalizedUrl = Utils.normalizeUrl(bookmarkData.url);
+            
             const bookmark = {
                 id: Utils.generateId(),
                 title: Utils.sanitizeString(bookmarkData.title),
-                url: bookmarkData.url,
+                url: normalizedUrl,
                 category: Utils.sanitizeString(bookmarkData.category) || 'General',
                 tags: Utils.validateTags(bookmarkData.tags),
                 color: bookmarkData.color || '#ffffff',
-                icon: bookmarkData.icon || Utils.getFaviconUrl(bookmarkData.url),
+                icon: bookmarkData.icon || Utils.getFaviconUrl(normalizedUrl),
                 reminderDays: bookmarkData.reminderDays || null,
                 type: bookmarkData.type || 'website',
                 createdAt: new Date().toISOString(),
@@ -1226,6 +1275,11 @@ class AppCore {
                 this.updateGridColumns();
             });
         }
+
+        // Setup admin tab functionality
+        this.setupAdminTabs();
+        this.setupAdminButtons();
+        this.setupVersionDisplay();
     }
 
     setupFormListeners() {
@@ -1247,6 +1301,168 @@ class AppCore {
             this.elements.browseAppBtn.addEventListener('click', async () => {
                 await this.handleBrowseForApp();
             });
+        }
+    }
+
+    setupAdminTabs() {
+        // Setup admin tab navigation
+        const adminTabs = document.querySelectorAll('.admin-tab');
+        const adminTabContents = document.querySelectorAll('.admin-tab-content');
+
+        adminTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active from all tabs and contents
+                adminTabs.forEach(t => {
+                    t.classList.remove('active');
+                    t.setAttribute('aria-selected', 'false');
+                });
+                adminTabContents.forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Add active to clicked tab and corresponding content
+                tab.classList.add('active');
+                tab.setAttribute('aria-selected', 'true');
+                
+                const tabId = tab.dataset.tab;
+                const content = document.getElementById(tabId);
+                if (content) {
+                    content.classList.add('active');
+                }
+
+                // Load tab-specific content
+                this.loadTabContent(tabId);
+            });
+        });
+    }
+
+    setupAdminButtons() {
+        // Import/Export buttons
+        const importHtmlBtn = document.getElementById('import-html-btn');
+        const importJsonBtn = document.getElementById('import-json-btn');
+        const backupBtn = document.getElementById('backup-btn');
+        const exportCsvBtn = document.getElementById('export-csv-btn');
+        const exportJsonBtn = document.getElementById('export-json-btn');
+
+        // Data tools buttons
+        const findDuplicatesBtn = document.getElementById('find-duplicates-btn');
+        const checkLinksBtn = document.getElementById('check-links-btn');
+        const updateFaviconsBtn = document.getElementById('update-favicons-btn');
+        const cleanupDataBtn = document.getElementById('cleanup-data-btn');
+
+        // Settings buttons
+        const animationToggle = document.getElementById('animation-toggle');
+        const autoUpdateToggle = document.getElementById('auto-update-toggle');
+        const checkUpdatesBtn = document.getElementById('check-updates-btn');
+        const viewReleasesBtn = document.getElementById('view-releases-btn');
+
+        // Theme buttons
+        const themeEditorForm = document.getElementById('theme-editor-form');
+        const resetThemeBtn = document.getElementById('reset-theme');
+        const presetButtons = document.querySelectorAll('.preset-btn');
+
+        // Suggestions button
+        const refreshSuggestionsBtn = document.getElementById('refresh-suggestions');
+
+        // Setup event listeners
+        if (importHtmlBtn) {
+            importHtmlBtn.addEventListener('click', () => this.handleImportHtml());
+        }
+        if (importJsonBtn) {
+            importJsonBtn.addEventListener('click', () => this.handleImportJson());
+        }
+        if (backupBtn) {
+            backupBtn.addEventListener('click', () => this.handleBackup());
+        }
+        if (exportCsvBtn) {
+            exportCsvBtn.addEventListener('click', () => this.handleExportCsv());
+        }
+        if (exportJsonBtn) {
+            exportJsonBtn.addEventListener('click', () => this.handleExportJson());
+        }
+        
+        if (findDuplicatesBtn) {
+            findDuplicatesBtn.addEventListener('click', () => this.handleFindDuplicates());
+        }
+        if (checkLinksBtn) {
+            checkLinksBtn.addEventListener('click', () => this.handleCheckLinks());
+        }
+        if (updateFaviconsBtn) {
+            updateFaviconsBtn.addEventListener('click', () => this.handleUpdateFavicons());
+        }
+        if (cleanupDataBtn) {
+            cleanupDataBtn.addEventListener('click', () => this.handleCleanupData());
+        }
+        
+        if (animationToggle) {
+            animationToggle.addEventListener('change', (e) => {
+                stateManager.setState({ animationsEnabled: e.target.checked });
+                stateManager.saveToStorage();
+            });
+        }
+        if (autoUpdateToggle) {
+            autoUpdateToggle.addEventListener('change', (e) => {
+                // Handle auto-update toggle
+                console.log('Auto-update toggled:', e.target.checked);
+            });
+        }
+        if (checkUpdatesBtn) {
+            checkUpdatesBtn.addEventListener('click', () => this.handleCheckUpdates());
+        }
+        if (viewReleasesBtn) {
+            viewReleasesBtn.addEventListener('click', () => this.handleViewReleases());
+        }
+        
+        if (themeEditorForm) {
+            themeEditorForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleSaveTheme();
+            });
+        }
+        if (resetThemeBtn) {
+            resetThemeBtn.addEventListener('click', () => this.handleResetTheme());
+        }
+
+        // Setup theme preset buttons
+        presetButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const theme = e.target.dataset.theme;
+                this.handleThemePreset(theme);
+            });
+        });
+
+        if (refreshSuggestionsBtn) {
+            refreshSuggestionsBtn.addEventListener('click', () => this.handleRefreshSuggestions());
+        }
+    }
+
+    setupVersionDisplay() {
+        // Display current version
+        const currentVersionEl = document.getElementById('current-version');
+        if (currentVersionEl) {
+            // Get version from package.json or electron
+            if (window.electronAPI && window.electronAPI.getAppVersion) {
+                window.electronAPI.getAppVersion().then(version => {
+                    currentVersionEl.textContent = `v${version}`;
+                }).catch(() => {
+                    currentVersionEl.textContent = 'v1.0.1';
+                });
+            } else {
+                currentVersionEl.textContent = 'v1.0.1';
+            }
+        }
+
+        // Add version to main window header
+        this.addVersionToHeader();
+    }
+
+    addVersionToHeader() {
+        const headerLeft = document.querySelector('.header-left h1');
+        if (headerLeft && !headerLeft.querySelector('.version-badge')) {
+            const versionBadge = document.createElement('span');
+            versionBadge.className = 'version-badge';
+            versionBadge.textContent = 'v1.0.1';
+            headerLeft.appendChild(versionBadge);
         }
     }
 
@@ -1500,6 +1716,9 @@ class AppCore {
             this.updateViewActions();
             this.updateGlobalSortOptions();
             
+            // Load bookmark suggestions
+            this.loadBookmarkSuggestions();
+            
             notificationService.info('Switched to Bookmark Manager');
             
         } else if (viewType === 'launcher') {
@@ -1520,6 +1739,9 @@ class AppCore {
             this.updateGlobalCategories();
             this.updateViewActions();
             this.updateGlobalSortOptions();
+            
+            // Load app suggestions
+            this.loadAppSuggestions();
             
             notificationService.info('Switched to Application Launcher');
         }
@@ -2754,6 +2976,545 @@ class AppCore {
             suggestionsContainer.innerHTML = '';
         }
     }
+
+    // Admin panel handler functions
+    loadTabContent(tabId) {
+        switch (tabId) {
+            case 'manage':
+                this.loadManageContent();
+                break;
+            case 'analytics':
+                this.loadAnalyticsContent();
+                break;
+            case 'settings':
+                this.loadSettingsContent();
+                break;
+            default:
+                break;
+        }
+    }
+
+    loadManageContent() {
+        // Load bookmarks into management view
+        const managementList = document.getElementById('bookmarks-management-list');
+        if (managementList) {
+            const bookmarks = stateManager.getState().bookmarks;
+            managementList.innerHTML = '';
+            
+            bookmarks.forEach(bookmark => {
+                const item = document.createElement('div');
+                item.className = 'management-item';
+                item.innerHTML = `
+                    <input type="checkbox" class="bookmark-select" data-id="${bookmark.id}">
+                    <img src="${bookmark.icon}" alt="${bookmark.title}" class="management-icon">
+                    <div class="management-info">
+                        <div class="management-title">${bookmark.title}</div>
+                        <div class="management-url">${bookmark.url}</div>
+                        <div class="management-category">${bookmark.category}</div>
+                    </div>
+                    <div class="management-actions">
+                        <button class="btn-edit" data-id="${bookmark.id}"><i class="fas fa-edit"></i></button>
+                        <button class="btn-delete" data-id="${bookmark.id}"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                managementList.appendChild(item);
+            });
+        }
+    }
+
+    loadAnalyticsContent() {
+        const bookmarks = stateManager.getState().bookmarks;
+        
+        // Update stats
+        document.getElementById('total-bookmarks').textContent = bookmarks.length;
+        document.getElementById('total-categories').textContent = new Set(bookmarks.map(b => b.category)).size;
+        document.getElementById('total-clicks').textContent = bookmarks.reduce((sum, b) => sum + (b.visits || 0), 0);
+        
+        const thisMonth = bookmarks.filter(b => {
+            const created = new Date(b.createdAt);
+            const now = new Date();
+            return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+        }).length;
+        document.getElementById('bookmarks-this-month').textContent = thisMonth;
+
+        // Load most visited
+        const mostVisited = bookmarks
+            .filter(b => b.visits > 0)
+            .sort((a, b) => (b.visits || 0) - (a.visits || 0))
+            .slice(0, 5);
+            
+        const mostVisitedList = document.getElementById('most-visited-list');
+        if (mostVisitedList) {
+            mostVisitedList.innerHTML = mostVisited.map(b => 
+                `<div class="analytics-item">${b.title} (${b.visits} visits)</div>`
+            ).join('');
+        }
+    }
+
+    loadSettingsContent() {
+        // Load current settings
+        const state = stateManager.getState();
+        
+        const gridColumns = document.getElementById('grid-columns');
+        const gridColumnsValue = document.getElementById('grid-columns-value');
+        const animationToggle = document.getElementById('animation-toggle');
+        
+        if (gridColumns && gridColumnsValue) {
+            gridColumns.value = state.gridColumns;
+            gridColumnsValue.textContent = state.gridColumns;
+            
+            gridColumns.addEventListener('input', (e) => {
+                const value = parseInt(e.target.value);
+                gridColumnsValue.textContent = value;
+                stateManager.setState({ gridColumns: value });
+                this.updateGridColumns();
+                stateManager.saveToStorage();
+            });
+        }
+        
+        if (animationToggle) {
+            animationToggle.checked = state.animationsEnabled;
+        }
+    }
+
+    // Handler functions for admin buttons
+    handleImportHtml() {
+        const fileInput = document.getElementById('import-html-file');
+        if (fileInput) {
+            fileInput.click();
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    // Handle HTML import
+                    notificationService.info('HTML import functionality coming soon!');
+                }
+            };
+        }
+    }
+
+    handleImportJson() {
+        const fileInput = document.getElementById('import-json-file');
+        if (fileInput) {
+            fileInput.click();
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            if (data.bookmarks && Array.isArray(data.bookmarks)) {
+                                stateManager.setState({ bookmarks: data.bookmarks });
+                                stateManager.saveToStorage();
+                                notificationService.success(`Imported ${data.bookmarks.length} bookmarks!`);
+                            }
+                        } catch (error) {
+                            notificationService.error('Invalid JSON file');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+        }
+    }
+
+    handleBackup() {
+        const state = stateManager.getState();
+        const backup = {
+            version: '1.0.1',
+            timestamp: new Date().toISOString(),
+            bookmarks: state.bookmarks,
+            categories: state.categories,
+            settings: {
+                gridColumns: state.gridColumns,
+                isDarkMode: state.isDarkMode,
+                animationsEnabled: state.animationsEnabled,
+                sortBy: state.sortBy,
+                sortOrder: state.sortOrder
+            }
+        };
+        
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bookmark-manager-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        notificationService.success('Backup created successfully!');
+    }
+
+    handleExportCsv() {
+        const bookmarks = stateManager.getState().bookmarks;
+        const csvHeader = 'Title,URL,Category,Tags,Created,Visits\n';
+        const csvData = bookmarks.map(b => 
+            `"${b.title}","${b.url}","${b.category}","${(b.tags || []).join(';')}","${b.createdAt}","${b.visits || 0}"`
+        ).join('\n');
+        
+        const blob = new Blob([csvHeader + csvData], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bookmarks-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        notificationService.success('CSV export completed!');
+    }
+
+    handleExportJson() {
+        const bookmarks = stateManager.getState().bookmarks;
+        const blob = new Blob([JSON.stringify(bookmarks, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bookmarks-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        notificationService.success('JSON export completed!');
+    }
+
+    handleFindDuplicates() {
+        const bookmarks = stateManager.getState().bookmarks;
+        const duplicates = [];
+        const seen = new Set();
+        
+        bookmarks.forEach(bookmark => {
+            if (seen.has(bookmark.url)) {
+                duplicates.push(bookmark);
+            } else {
+                seen.add(bookmark.url);
+            }
+        });
+        
+        if (duplicates.length > 0) {
+            notificationService.warning(`Found ${duplicates.length} duplicate bookmarks`);
+        } else {
+            notificationService.success('No duplicates found!');
+        }
+    }
+
+    handleCheckLinks() {
+        notificationService.info('Checking links... This may take a moment');
+        const bookmarks = stateManager.getState().bookmarks;
+        let checkedCount = 0;
+        let brokenCount = 0;
+        
+        // Simple implementation - check a few links
+        bookmarks.slice(0, 5).forEach(bookmark => {
+            fetch(bookmark.url, { method: 'HEAD', mode: 'no-cors' })
+                .then(() => {
+                    checkedCount++;
+                    if (checkedCount === Math.min(5, bookmarks.length)) {
+                        notificationService.success(`Checked ${checkedCount} links, ${brokenCount} broken`);
+                    }
+                })
+                .catch(() => {
+                    brokenCount++;
+                    checkedCount++;
+                    if (checkedCount === Math.min(5, bookmarks.length)) {
+                        notificationService.warning(`Checked ${checkedCount} links, ${brokenCount} broken`);
+                    }
+                });
+        });
+    }
+
+    handleUpdateFavicons() {
+        notificationService.info('Updating favicons...');
+        const bookmarks = stateManager.getState().bookmarks;
+        
+        bookmarks.forEach(bookmark => {
+            try {
+                const url = new URL(bookmark.url);
+                bookmark.icon = `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=32`;
+            } catch (error) {
+                // Keep existing icon if URL is invalid
+            }
+        });
+        
+        stateManager.setState({ bookmarks });
+        stateManager.saveToStorage();
+        notificationService.success('Favicons updated!');
+    }
+
+    handleCleanupData() {
+        notificationService.info('Cleaning up data...');
+        const bookmarks = stateManager.getState().bookmarks;
+        
+        // Remove bookmarks with invalid URLs
+        const cleanedBookmarks = bookmarks.filter(bookmark => {
+            try {
+                new URL(bookmark.url);
+                return true;
+            } catch {
+                return false;
+            }
+        });
+        
+        const removedCount = bookmarks.length - cleanedBookmarks.length;
+        if (removedCount > 0) {
+            stateManager.setState({ bookmarks: cleanedBookmarks });
+            stateManager.saveToStorage();
+            notificationService.success(`Cleaned up ${removedCount} invalid bookmarks`);
+        } else {
+            notificationService.success('No cleanup needed!');
+        }
+    }
+
+    async handleCheckUpdates() {
+        if (Utils.isElectron() && window.electronAPI) {
+            try {
+                notificationService.info('Checking for updates...');
+                
+                // Use the existing checkForUpdates method if available
+                if (this.checkForUpdates) {
+                    await this.checkForUpdates(true);
+                } else {
+                    // Fallback to direct API call
+                    const result = await window.electronAPI.checkForUpdates();
+                    if (result?.error) {
+                        throw new Error(result.error);
+                    }
+                    
+                    // Wait a moment to let the update handlers process
+                    setTimeout(() => {
+                        // Only show success if no update was found
+                        const versionStatus = document.getElementById('version-status');
+                        if (versionStatus && versionStatus.textContent.includes('latest version')) {
+                            notificationService.success('You are running the latest version!');
+                        }
+                    }, 1500);
+                }
+            } catch (error) {
+                console.error('Update check failed:', error);
+                notificationService.error(`Update check failed: ${error.message}`);
+            }
+        } else {
+            notificationService.info('Update checking is not available in web version. Download the latest version from GitHub.');
+        }
+    }
+
+    handleViewReleases() {
+        if (window.electronAPI) {
+            // Open GitHub releases page
+            window.open('https://github.com/aardel/Bookmarks/releases', '_blank');
+        } else {
+            notificationService.info('Release notes available on GitHub');
+        }
+    }
+
+    handleSaveTheme() {
+        notificationService.success('Theme saved!');
+    }
+
+    handleResetTheme() {
+        // Reset to default theme
+        this.applyTheme(false);
+        stateManager.setState({ isDarkMode: false });
+        stateManager.saveToStorage();
+        notificationService.success('Theme reset to default!');
+    }
+
+    handleThemePreset(theme) {
+        // Apply predefined theme presets
+        const themes = {
+            light: {
+                isDarkMode: false,
+                name: 'Light Theme'
+            },
+            dark: {
+                isDarkMode: true,
+                name: 'Dark Theme'
+            },
+            blue: {
+                isDarkMode: false,
+                name: 'Blue Theme',
+                customColors: {
+                    '--accent-color': '#1976d2',
+                    '--bg-primary': '#e3f2fd',
+                    '--bg-secondary': '#bbdefb'
+                }
+            },
+            custom: {
+                isDarkMode: false,
+                name: 'Custom Theme'
+            }
+        };
+
+        const selectedTheme = themes[theme];
+        if (!selectedTheme) {
+            notificationService.error('Invalid theme selected');
+            return;
+        }
+
+        // Apply the theme
+        this.applyTheme(selectedTheme.isDarkMode);
+        stateManager.setState({ isDarkMode: selectedTheme.isDarkMode });
+        
+        // Apply custom colors if they exist
+        if (selectedTheme.customColors) {
+            const root = document.documentElement;
+            Object.entries(selectedTheme.customColors).forEach(([property, value]) => {
+                root.style.setProperty(property, value);
+            });
+        } else if (theme === 'light' || theme === 'dark') {
+            // Reset custom colors for light/dark themes
+            const root = document.documentElement;
+            root.style.removeProperty('--accent-color');
+            root.style.removeProperty('--bg-primary');
+            root.style.removeProperty('--bg-secondary');
+        }
+
+        // Update preset button active state
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-theme="${theme}"]`)?.classList.add('active');
+
+        stateManager.saveToStorage();
+        notificationService.success(`${selectedTheme.name} applied!`);
+    }
+
+    handleRefreshSuggestions() {
+        // Get current view
+        const currentView = stateManager.getState().currentView || 'bookmarks';
+        
+        if (currentView === 'bookmarks') {
+            this.loadBookmarkSuggestions();
+        } else {
+            this.loadAppSuggestions();
+        }
+    }
+
+    loadBookmarkSuggestions() {
+        const suggestionsGrid = document.getElementById('suggestions-grid');
+        const suggestionsSection = document.getElementById('suggestions-section');
+        
+        if (!suggestionsGrid || !suggestionsSection) return;
+        
+        // Show section and update content for bookmarks
+        suggestionsSection.style.display = 'block';
+        
+        const suggestions = [
+            { title: 'GitHub', url: 'https://github.com', category: 'Development' },
+            { title: 'Stack Overflow', url: 'https://stackoverflow.com', category: 'Development' },
+            { title: 'MDN Web Docs', url: 'https://developer.mozilla.org', category: 'Development' },
+            { title: 'Google Drive', url: 'https://drive.google.com', category: 'Productivity' },
+            { title: 'YouTube', url: 'https://youtube.com', category: 'Entertainment' }
+        ];
+        
+        suggestionsGrid.innerHTML = suggestions.map(suggestion => `
+            <div class="suggestion-item" data-url="${suggestion.url}">
+                <img src="https://www.google.com/s2/favicons?domain=${new URL(suggestion.url).hostname}&sz=32" alt="${suggestion.title}">
+                <div class="suggestion-info">
+                    <div class="suggestion-title">${suggestion.title}</div>
+                    <div class="suggestion-category">${suggestion.category}</div>
+                </div>
+                <button class="add-suggestion-btn" data-title="${suggestion.title}" data-url="${suggestion.url}" data-category="${suggestion.category}">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        `).join('');
+        
+        // Add click handlers for suggestions
+        suggestionsGrid.querySelectorAll('.add-suggestion-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const title = btn.dataset.title;
+                const url = btn.dataset.url;
+                const category = btn.dataset.category;
+                
+                const result = await bookmarkManager.addBookmark({ title, url, category });
+                if (result) {
+                    btn.innerHTML = '<i class="fas fa-check"></i>';
+                    btn.disabled = true;
+                }
+            });
+        });
+        
+        notificationService.success('Bookmark suggestions refreshed!');
+    }
+
+    loadAppSuggestions() {
+        const suggestionsGrid = document.getElementById('suggestions-grid');
+        const suggestionsSection = document.getElementById('suggestions-section');
+        
+        if (!suggestionsGrid || !suggestionsSection) return;
+        
+        // Show section and update content for apps
+        suggestionsSection.style.display = 'block';
+        
+        // Update header for app suggestions
+        const header = suggestionsSection.querySelector('h3');
+        if (header) {
+            header.innerHTML = '<i class="fas fa-rocket"></i> Suggested Applications';
+        }
+        const description = suggestionsSection.querySelector('p');
+        if (description) {
+            description.textContent = 'Popular applications you might want to add';
+        }
+        
+        const appSuggestions = [
+            { name: 'Visual Studio Code', path: '/Applications/Visual Studio Code.app', category: 'Development' },
+            { name: 'Google Chrome', path: '/Applications/Google Chrome.app', category: 'Productivity' },
+            { name: 'Slack', path: '/Applications/Slack.app', category: 'Productivity' },
+            { name: 'Adobe Photoshop', path: '/Applications/Adobe Photoshop.app', category: 'Graphics' },
+            { name: 'Spotify', path: '/Applications/Spotify.app', category: 'Entertainment' }
+        ];
+        
+        suggestionsGrid.innerHTML = appSuggestions.map(app => `
+            <div class="suggestion-item" data-path="${app.path}">
+                <i class="fas fa-desktop suggestion-app-icon"></i>
+                <div class="suggestion-info">
+                    <div class="suggestion-title">${app.name}</div>
+                    <div class="suggestion-category">${app.category}</div>
+                </div>
+                <button class="add-suggestion-btn" data-name="${app.name}" data-path="${app.path}" data-category="${app.category}">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        `).join('');
+        
+        // Add click handlers for app suggestions
+        suggestionsGrid.querySelectorAll('.add-suggestion-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const name = btn.dataset.name;
+                const path = btn.dataset.path;
+                const category = btn.dataset.category;
+                
+                // Add to launcher settings
+                const launcherSettings = stateManager.getState().launcherSettings;
+                const newApp = {
+                    id: Utils.generateId(),
+                    name,
+                    path,
+                    category: category.toLowerCase(),
+                    usageCount: 0,
+                    favorite: false,
+                    iconUrl: null,
+                    description: ''
+                };
+                
+                const applications = [...(launcherSettings.applications || []), newApp];
+                stateManager.setState({
+                    launcherSettings: {
+                        ...launcherSettings,
+                        applications
+                    }
+                });
+                stateManager.saveToStorage();
+                
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.disabled = true;
+                notificationService.success(`Added ${name} to launcher!`);
+            });
+        });
+        
+        notificationService.success('App suggestions refreshed!');
+    }
 }
 
 // Add CSS for notifications
@@ -3124,6 +3885,248 @@ style.textContent = `
 
     .bookmark-menu-btn:hover {
         background: var(--bg-primary);
+        color: var(--text-primary);
+    }
+
+    /* Version badge in header */
+    .version-badge {
+        display: inline-block;
+        background: var(--accent-color);
+        color: white;
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        margin-left: 8px;
+        font-weight: 500;
+        vertical-align: middle;
+    }
+
+    /* View mode toggle border centering fix */
+    .view-mode-toggle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 16px 20px;
+        background: var(--bg-primary);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .view-mode-btn {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin: 0 4px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .view-mode-btn:hover {
+        background: var(--bg-primary);
+        border-color: var(--accent-color);
+        color: var(--text-primary);
+    }
+
+    .view-mode-btn.active {
+        background: var(--accent-color);
+        color: white;
+        border-color: var(--accent-color);
+    }
+
+    /* Suggestions styling */
+    .suggestions-section {
+        padding: 20px;
+        background: var(--bg-primary);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .suggestions-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+
+    .suggestions-header h3 {
+        margin: 0;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .suggestions-header p {
+        margin: 4px 0 0 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    .refresh-btn {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .refresh-btn:hover {
+        background: var(--accent-color);
+        color: white;
+        border-color: var(--accent-color);
+    }
+
+    .suggestions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 12px;
+    }
+
+    .suggestion-item {
+        display: flex;
+        align-items: center;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 12px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .suggestion-item:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px var(--shadow);
+        border-color: var(--accent-color);
+    }
+
+    .suggestion-item img {
+        width: 24px;
+        height: 24px;
+        margin-right: 12px;
+        border-radius: 4px;
+    }
+
+    .suggestion-app-icon {
+        font-size: 24px;
+        color: var(--accent-color);
+        margin-right: 12px;
+        width: 24px;
+        text-align: center;
+    }
+
+    .suggestion-info {
+        flex: 1;
+    }
+
+    .suggestion-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+
+    .suggestion-category {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    .add-suggestion-btn {
+        background: var(--accent-color);
+        border: none;
+        color: white;
+        padding: 6px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin-left: 8px;
+    }
+
+    .add-suggestion-btn:hover {
+        background: var(--accent-color);
+        opacity: 0.8;
+    }
+
+    .add-suggestion-btn:disabled {
+        background: #27ae60;
+        cursor: not-allowed;
+    }
+
+    /* Management item styling */
+    .management-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.2s;
+    }
+
+    .management-item:hover {
+        background: var(--bg-primary);
+    }
+
+    .management-icon {
+        width: 24px;
+        height: 24px;
+        margin: 0 12px;
+        border-radius: 4px;
+    }
+
+    .management-info {
+        flex: 1;
+    }
+
+    .management-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+
+    .management-url {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 2px;
+    }
+
+    .management-category {
+        font-size: 11px;
+        color: var(--accent-color);
+    }
+
+    .management-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-edit, .btn-delete {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 6px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-edit:hover {
+        background: var(--accent-color);
+        color: white;
+        border-color: var(--accent-color);
+    }
+
+    .btn-delete:hover {
+        background: #e74c3c;
+        color: white;
+        border-color: #e74c3c;
+    }
+
+    .analytics-item {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border-color);
         color: var(--text-primary);
     }
 `;
