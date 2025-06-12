@@ -1,6 +1,6 @@
 {
   "name": "bookmark-manager",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Advanced Bookmark Manager with Native App Launching",
   "main": "main.js",
   "scripts": {
@@ -67,7 +67,10 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ]
     },
@@ -76,7 +79,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "publisherName": "Aaron Delia"
