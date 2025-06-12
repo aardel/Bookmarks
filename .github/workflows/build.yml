@@ -34,7 +34,7 @@ jobs:
     - name: Build app for macOS
       run: |
         echo "Starting macOS build..."
-        npm run build-mac
+        npm run build-mac -- --publish=never
         
     - name: Check build output
       run: |
@@ -64,7 +64,7 @@ jobs:
       run: npm ci
       
     - name: Build app for Windows
-      run: npm run build-win
+      run: npm run build-win -- --publish=never
         
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
@@ -94,7 +94,7 @@ jobs:
       run: npm ci
       
     - name: Build app for Linux
-      run: npm run build-linux
+      run: npm run build-linux -- --publish=never
         
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
