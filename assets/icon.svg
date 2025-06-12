@@ -1,0 +1,31 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a6da7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6b8dd6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#f8f9fa;stop-opacity:0.8" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#bg)" stroke="#2d4a7a" stroke-width="8"/>
+  
+  <!-- Bookmark icon -->
+  <path d="M180 120 L180 380 L220 340 L260 380 L260 120 Z" fill="url(#accent)" stroke="#2d4a7a" stroke-width="3"/>
+  
+  <!-- App grid representing launcher -->
+  <rect x="300" y="160" width="40" height="40" rx="8" fill="url(#accent)" stroke="#2d4a7a" stroke-width="2"/>
+  <rect x="350" y="160" width="40" height="40" rx="8" fill="url(#accent)" stroke="#2d4a7a" stroke-width="2"/>
+  <rect x="300" y="210" width="40" height="40" rx="8" fill="url(#accent)" stroke="#2d4a7a" stroke-width="2"/>
+  <rect x="350" y="210" width="40" height="40" rx="8" fill="url(#accent)" stroke="#2d4a7a" stroke-width="2"/>
+  
+  <!-- Rocket icon for launcher -->
+  <path d="M320 280 L320 300 L340 310 L360 300 L360 280 L350 270 L340 260 L330 270 Z" fill="#ff6b6b"/>
+  <circle cx="340" cy="285" r="3" fill="#ffffff"/>
+  
+  <!-- Connection line -->
+  <path d="M280 250 Q310 250 320 280" stroke="url(#accent)" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg>

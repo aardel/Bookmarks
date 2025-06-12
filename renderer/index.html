@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookmark Manager</title>
+    <link rel="stylesheet" href="styles.css?v=2025060614">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body class="light-mode">
+    <header role="banner">
+        <div class="header-container">
+            <div class="header-left">
+                <h1>Bookmark Manager</h1>
+                <div class="search-container">
+                    <input type="text" id="search-bookmarks" placeholder="Search bookmarks..." aria-label="Search bookmarks">
+                    <button id="search-clear" class="search-clear hidden" aria-label="Clear search">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <!-- Mobile Navigation Toggle -->
+                <button id="mobile-nav-toggle" class="header-btn mobile-only" title="Toggle Navigation" aria-label="Toggle Navigation">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <!-- Desktop Controls -->
+                <div class="header-controls">
+                    <button id="theme-toggle" class="header-btn" title="Toggle Dark/Light mode" aria-label="Toggle Dark/Light mode">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <button id="grid-size-toggle" class="header-btn" title="Adjust grid size" aria-label="Adjust grid size">
+                        <i class="fas fa-grip"></i>
+                    </button>
+                    <button id="view-toggle" class="header-btn" title="Toggle Grid/List view" aria-label="Toggle Grid/List view">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button id="admin-toggle" class="header-btn" title="Admin mode" aria-label="Admin mode">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Wrap category filters inside a new nav for mobile -->
+        <nav id="mobile-nav" class="mobile-nav hidden">
+            <section id="mobile-category-filters" class="category-filters" role="navigation">
+                <button class="category-filter active" data-category="all">All</button>
+                <!-- Categories will be added dynamically -->
+            </section>
+        </nav>
+        <!-- Global Controls - works for both bookmarks and apps -->
+        <div class="global-controls">
+            <div class="search-group">
+                <label for="global-search-category">Category:</label>
+                <select id="global-search-category" aria-label="Filter by category">
+                    <option value="">All</option>
+                    <!-- Categories will be added dynamically based on current view -->
+                </select>
+            </div>
+            
+            <div class="search-group" id="tags-search-group">
+                <label for="global-search-tags">Tags:</label>
+                <input type="text" id="global-search-tags" placeholder="Enter tags separated by commas" aria-label="Search by tags">
+            </div>
+            
+            <div class="search-group">
+                <label for="global-sort">Sort By:</label>
+                <div class="sort-controls">
+                    <select id="global-sort" aria-label="Sort items">
+                        <!-- Options will be updated based on current view -->
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="alphabetical">Alphabetical</option>
+                        <option value="most-visited">Most Visited</option>
+                        <option value="category">Category</option>
+                    </select>
+                    <button id="global-sort-order-toggle" class="sort-toggle-btn" title="Toggle Sort Order" aria-label="Toggle Sort Order">
+                        <i class="fas fa-sort-amount-down"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- View-specific actions -->
+            <div class="view-actions" id="global-view-actions">
+                <!-- Actions will be updated based on current view -->
+            </div>
+        </div>
+    </header>
+
+    <main role="main">
+        <!-- View Mode Toggle -->
+        <section class="view-mode-toggle">
+            <button id="bookmarks-view-btn" class="view-mode-btn active" data-view="bookmarks">
+                <i class="fas fa-bookmark"></i> Bookmarks
+            </button>
+            <button id="launcher-view-btn" class="view-mode-btn" data-view="launcher">
+                <i class="fas fa-rocket"></i> App Launcher
+            </button>
+        </section>
+
+        <!-- Global Categories Section -->
+        <section id="global-categories" class="global-categories" role="navigation">
+            <!-- Categories will be added dynamically based on current view -->
+            <button class="category-tab active" data-category="all">All</button>
+        </section>
+
+        <!-- Bookmarks View -->
+        <div id="bookmarks-view" class="main-view active">
+            <!-- Grid view for bookmarks -->
+            <section id="bookmark-grid" class="bookmark-container" role="list">
+                <!-- Bookmark items will be dynamically added here -->
+            </section>
+        </div>
+
+        <!-- Program Launcher View -->
+        <div id="launcher-view" class="main-view hidden">
+            <!-- Applications Grid -->
+            <section id="applications-grid" class="applications-container" role="list">
+                <!-- Application items will be dynamically added here -->
+            </section>
+        </div>
+
+        <!-- Suggested Websites Section -->
+        <section id="suggestions-section" class="suggestions-section">
+            <div class="suggestions-header">
+                <h3><i class="fas fa-lightbulb"></i> Suggested Websites</h3>
+                <p>Based on your favorite bookmarks and categories</p>
+                <button id="refresh-suggestions" class="refresh-btn" title="Refresh suggestions">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div id="suggestions-grid" class="suggestions-grid">
+                <!-- Suggested websites will be added here -->
+            </div>
+        </section>
+
+        <!-- Revamped Admin Panel -->
+        <section id="admin-panel" class="admin-panel hidden" role="region" aria-labelledby="admin-title">
+            <!-- Admin Header with Tabs -->
+            <div class="admin-header">
+                <h2 id="admin-title">
+                    <i class="fas fa-cog"></i>
+                    Bookmark Manager
+                </h2>
+                <button id="close-admin" aria-label="Close admin panel">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Admin Tabs Navigation -->
+            <nav class="admin-tabs" role="tablist">
+                <button class="admin-tab active" data-tab="quick-actions" role="tab" aria-selected="true">
+                    <i class="fas fa-plus-circle"></i>
+                    Quick Actions
+                </button>
+                <button class="admin-tab" data-tab="manage" role="tab" aria-selected="false">
+                    <i class="fas fa-list-ul"></i>
+                    Manage
+                </button>
+                <button class="admin-tab" data-tab="data" role="tab" aria-selected="false">
+                    <i class="fas fa-database"></i>
+                    Data
+                </button>
+                <button class="admin-tab" data-tab="settings" role="tab" aria-selected="false">
+                    <i class="fas fa-sliders-h"></i>
+                    Settings
+                </button>
+                <button class="admin-tab" data-tab="analytics" role="tab" aria-selected="false">
+                    <i class="fas fa-chart-bar"></i>
+                    Analytics
+                </button>
+            </nav>
+
+            <!-- Quick Actions Tab -->
+            <div id="quick-actions" class="admin-tab-content active" role="tabpanel">
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-bookmark"></i> Add New Bookmark</h3>
+                        <p class="section-description">Quickly add a new bookmark with all details</p>
+                    </div>
+                    
+                    <form id="add-bookmark-form" class="modern-form">
+                        <div class="form-group">
+                            <label for="bookmark-type">Type *</label>
+                            <select id="bookmark-type" required>
+                                <option value="website">🌐 Website / Web Link</option>
+                                <option value="program">🖥️ Program / Application</option>
+                                <option value="protocol">🔗 Custom Protocol (app://)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bookmark-title">Title *</label>
+                                <input type="text" id="bookmark-title" required placeholder="e.g., Adobe Illustrator or Google">
+                            </div>
+                            <div class="form-group" id="url-program-group">
+                                <label for="bookmark-url" id="url-label">URL *</label>
+                                <div class="input-with-button">
+                                    <input type="text" id="bookmark-url" required placeholder="https://example.com" list="detected-programs">
+                                    <button type="button" id="scan-apps-btn" class="scan-btn hidden">
+                                        <i class="fas fa-search"></i> Scan Apps
+                                    </button>
+                                </div>
+                                <datalist id="detected-programs">
+                                    <!-- Will be populated by scanning -->
+                                </datalist>
+                                <small class="form-hint" id="url-hint">Enter the website URL</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bookmark-category">Category</label>
+                                <input type="text" id="bookmark-category" list="categories-list" placeholder="Select or create category">
+                                <datalist id="categories-list">
+                                    <!-- Categories will be added dynamically -->
+                                </datalist>
+                            </div>
+                            <div class="form-group">
+                                <label for="bookmark-color">Color</label>
+                                <input type="color" id="bookmark-color" value="#ffffff">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="bookmark-tags">Tags</label>
+                            <input type="text" id="bookmark-tags" placeholder="Enter tags separated by commas">
+                            <small class="form-hint">Separate multiple tags with commas</small>
+                        </div>
+                        
+                        <details class="advanced-options">
+                            <summary>Advanced Options</summary>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="bookmark-icon">Custom Icon URL</label>
+                                    <input type="url" id="bookmark-icon" placeholder="https://example.com/icon.png">
+                                </div>
+                                <div class="form-group">
+                                    <label for="bookmark-reminder">Reminder (days)</label>
+                                    <input type="number" id="bookmark-reminder" min="1" max="365" placeholder="7">
+                                </div>
+                            </div>
+                        </details>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Bookmark
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-rocket"></i> Add New Application</h3>
+                        <p class="section-description">Manually add an application to your launcher</p>
+                    </div>
+                    
+                    <form id="add-app-form" class="modern-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="app-name">Application Name *</label>
+                                <input type="text" id="app-name" required placeholder="e.g., Adobe Photoshop">
+                            </div>
+                            <div class="form-group">
+                                <label for="app-path">Application Path *</label>
+                                <div class="input-with-button">
+                                    <input type="text" id="app-path" required placeholder="/Applications/Example.app">
+                                    <button type="button" id="browse-app-btn" class="scan-btn">
+                                        <i class="fas fa-folder-open"></i> Browse
+                                    </button>
+                                </div>
+                                <small class="form-hint">Path to the application executable</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="app-category-select">Category</label>
+                                <select id="app-category-select">
+                                    <option value="Development">Development</option>
+                                    <option value="Productivity">Productivity</option>
+                                    <option value="Entertainment">Entertainment</option>
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Graphics">Graphics</option>
+                                    <option value="Games">Games</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="app-version">Version</label>
+                                <input type="text" id="app-version" placeholder="1.0.0">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="app-description">Description</label>
+                            <input type="text" id="app-description" placeholder="Brief description of the application">
+                        </div>
+                        
+                        <details class="advanced-options">
+                            <summary>Advanced Options</summary>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="app-icon-url">Custom Icon URL</label>
+                                    <input type="url" id="app-icon-url" placeholder="https://example.com/icon.png">
+                                </div>
+                                <div class="form-group">
+                                    <label for="app-custom-icon">Custom Icon Class</label>
+                                    <input type="text" id="app-custom-icon" placeholder="fas fa-desktop">
+                                    <small class="form-hint">FontAwesome icon class</small>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="app-extract-icon"> 
+                                    Try to extract icon from application
+                                </label>
+                            </div>
+                        </details>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Application
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-magic"></i> Quick Add Bookmarklet</h3>
+                        <p class="section-description">Drag this to your bookmarks bar for one-click adding</p>
+                    </div>
+                    <div class="bookmarklet-container">
+                        <a href="javascript:(function(){var url=window.location.href;var title=document.title;window.open('index.html?action=add&url='+encodeURIComponent(url)+'&title='+encodeURIComponent(title),'_blank');})();" 
+                           class="bookmarklet">
+                            <i class="fas fa-bookmark"></i> + Add to My Bookmarks
+                        </a>
+                        <p class="bookmarklet-help">Drag this button to your browser's bookmarks bar, then click it on any page to quickly add it to your collection.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manage Tab -->
+            <div id="manage" class="admin-tab-content" role="tabpanel">
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-search"></i> Find & Manage Bookmarks</h3>
+                        <p class="section-description">Search, filter, and manage your bookmarks</p>
+                    </div>
+                    
+                    <!-- Admin Search and Filters -->
+                    <div class="admin-search-container">
+                        <div class="search-row">
+                            <div class="search-group">
+                                <input type="text" id="admin-search" placeholder="Search bookmarks..." class="admin-search-input">
+                                <button id="admin-search-clear" class="search-clear-btn">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="filter-group">
+                                <select id="admin-filter-category" class="admin-filter">
+                                    <option value="">All Categories</option>
+                                    <!-- Categories populated dynamically -->
+                                </select>
+                                <select id="admin-filter-date" class="admin-filter">
+                                    <option value="">All Time</option>
+                                    <option value="today">Today</option>
+                                    <option value="week">This Week</option>
+                                    <option value="month">This Month</option>
+                                    <option value="year">This Year</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Bulk Actions -->
+                        <div class="bulk-actions" id="bulk-actions" style="display: none;">
+                            <div class="bulk-info">
+                                <span id="selected-count">0</span> selected
+                            </div>
+                            <div class="bulk-buttons">
+                                <button id="bulk-delete" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i> Delete Selected
+                                </button>
+                                <button id="bulk-export" class="btn btn-secondary">
+                                    <i class="fas fa-download"></i> Export Selected
+                                </button>
+                                <button id="bulk-categorize" class="btn btn-secondary">
+                                    <i class="fas fa-tag"></i> Set Category
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bookmarks Management List -->
+                    <div class="bookmarks-management">
+                        <div class="management-header">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="select-all-bookmarks">
+                                <span class="checkmark"></span>
+                                Select All
+                            </label>
+                            <div class="sort-options">
+                                <select id="manage-sort" class="admin-filter">
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
+                                    <option value="alphabetical">Alphabetical</option>
+                                    <option value="most-visited">Most Visited</option>
+                                    <option value="category">By Category</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="bookmarks-management-list" class="bookmarks-list">
+                            <!-- Bookmarks will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-tags"></i> Categories & Organization</h3>
+                        <p class="section-description">Manage categories and organize your bookmarks</p>
+                    </div>
+                    
+                    <div class="category-manager">
+                        <div class="add-category-form">
+                            <div class="form-row">
+                                <input type="text" id="new-category" placeholder="New category name" class="category-input">
+                                <button id="add-category-btn" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </div>
+                        </div>
+                        <div id="categories-container" class="categories-grid">
+                            <!-- Categories will be listed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Tab -->
+            <div id="data" class="admin-tab-content" role="tabpanel">
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-file-import"></i> Import Bookmarks</h3>
+                        <p class="section-description">Import bookmarks from various sources</p>
+                    </div>
+                    
+                    <div class="import-options">
+                        <div class="import-option">
+                            <div class="import-icon">
+                                <i class="fab fa-chrome"></i>
+                            </div>
+                            <div class="import-details">
+                                <h4>Browser Bookmarks</h4>
+                                <p>Import from Chrome, Firefox, Safari, or Edge</p>
+                                <button id="import-html-btn" class="btn btn-secondary">
+                                    <i class="fas fa-upload"></i> Import HTML File
+                                </button>
+                                <input type="file" id="import-html-file" accept=".html" hidden>
+                            </div>
+                        </div>
+                        
+                        <div class="import-option">
+                            <div class="import-icon">
+                                <i class="fas fa-file-code"></i>
+                            </div>
+                            <div class="import-details">
+                                <h4>JSON Backup</h4>
+                                <p>Import from previous backup files</p>
+                                <button id="import-json-btn" class="btn btn-secondary">
+                                    <i class="fas fa-upload"></i> Import JSON File
+                                </button>
+                                <input type="file" id="import-json-file" accept=".json" hidden>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-file-export"></i> Export & Backup</h3>
+                        <p class="section-description">Export your bookmarks and create backups</p>
+                    </div>
+                    
+                    <div class="export-options">
+                        <div class="export-card">
+                            <h4><i class="fas fa-save"></i> Full Backup</h4>
+                            <p>Complete backup with all settings and data</p>
+                            <button id="backup-btn" class="btn btn-primary">
+                                <i class="fas fa-download"></i> Create Backup
+                            </button>
+                        </div>
+                        
+                        <div class="export-card">
+                            <h4><i class="fas fa-table"></i> Export as CSV</h4>
+                            <p>Spreadsheet-compatible format</p>
+                            <button id="export-csv-btn" class="btn btn-secondary">
+                                <i class="fas fa-file-csv"></i> Export CSV
+                            </button>
+                        </div>
+                        
+                        <div class="export-card">
+                            <h4><i class="fas fa-code"></i> Export as JSON</h4>
+                            <p>Raw data format for developers</p>
+                            <button id="export-json-btn" class="btn btn-secondary">
+                                <i class="fas fa-file-code"></i> Export JSON
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-tools"></i> Data Tools</h3>
+                        <p class="section-description">Maintain and optimize your bookmark data</p>
+                    </div>
+                    
+                    <div class="data-tools">
+                        <button id="find-duplicates-btn" class="tool-btn">
+                            <i class="fas fa-copy"></i>
+                            <span>Find Duplicates</span>
+                        </button>
+                        <button id="check-links-btn" class="tool-btn">
+                            <i class="fas fa-link"></i>
+                            <span>Check Broken Links</span>
+                        </button>
+                        <button id="update-favicons-btn" class="tool-btn">
+                            <i class="fas fa-image"></i>
+                            <span>Update Favicons</span>
+                        </button>
+                        <button id="cleanup-data-btn" class="tool-btn">
+                            <i class="fas fa-broom"></i>
+                            <span>Clean Data</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings" class="admin-tab-content" role="tabpanel">
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-display"></i> Display Settings</h3>
+                        <p class="section-description">Customize how bookmarks are displayed</p>
+                    </div>
+                    
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label for="grid-columns">Grid Columns</label>
+                            <div class="range-container">
+                                <input type="range" id="grid-columns" min="2" max="8" value="4">
+                                <span id="grid-columns-value">4</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label for="animation-toggle">Animations</label>
+                            <label class="switch">
+                                <input type="checkbox" id="animation-toggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label for="default-sort">Default Sort Order</label>
+                            <select id="default-sort" class="form-select">
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="alphabetical">Alphabetical</option>
+                                <option value="most-visited">Most Visited</option>
+                                <option value="category">By Category</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-palette"></i> Theme Customization</h3>
+                        <p class="section-description">Personalize the appearance</p>
+                    </div>
+                    
+                    <form id="theme-editor-form" class="theme-form">
+                        <div class="theme-presets">
+                            <button type="button" class="preset-btn" data-theme="light">Light</button>
+                            <button type="button" class="preset-btn" data-theme="dark">Dark</button>
+                            <button type="button" class="preset-btn" data-theme="blue">Blue</button>
+                            <button type="button" class="preset-btn" data-theme="custom">Custom</button>
+                        </div>
+                        
+                        <div class="theme-colors">
+                            <div class="color-group">
+                                <label for="theme-bg-primary">Background</label>
+                                <input type="color" id="theme-bg-primary" value="#f8f9fa">
+                            </div>
+                            <div class="color-group">
+                                <label for="theme-bg-secondary">Cards</label>
+                                <input type="color" id="theme-bg-secondary" value="#ffffff">
+                            </div>
+                            <div class="color-group">
+                                <label for="theme-text-primary">Text</label>
+                                <input type="color" id="theme-text-primary" value="#333333">
+                            </div>
+                            <div class="color-group">
+                                <label for="theme-text-secondary">Secondary Text</label>
+                                <input type="color" id="theme-text-secondary" value="#666666">
+                            </div>
+                            <div class="color-group">
+                                <label for="theme-accent-color">Accent</label>
+                                <input type="color" id="theme-accent-color" value="#4a6da7">
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Theme
+                            </button>
+                            <button type="button" id="reset-theme" class="btn btn-secondary">
+                                <i class="fas fa-undo"></i> Reset to Default
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div id="analytics" class="admin-tab-content" role="tabpanel">
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-chart-line"></i> Usage Analytics</h3>
+                        <p class="section-description">Insights into your bookmark usage patterns</p>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-bookmark"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-number" id="total-bookmarks">0</div>
+                                <div class="stat-label">Total Bookmarks</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-number" id="total-categories">0</div>
+                                <div class="stat-label">Categories</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-mouse-pointer"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-number" id="total-clicks">0</div>
+                                <div class="stat-label">Total Clicks</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-calendar-day"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-number" id="bookmarks-this-month">0</div>
+                                <div class="stat-label">Added This Month</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-sections">
+                        <div class="analytics-card">
+                            <h4><i class="fas fa-fire"></i> Most Visited</h4>
+                            <div id="most-visited-list" class="analytics-list">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <div class="analytics-card">
+                            <h4><i class="fas fa-chart-pie"></i> Categories</h4>
+                            <div id="category-distribution" class="analytics-list">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <div class="analytics-card">
+                            <h4><i class="fas fa-clock"></i> Recent Activity</h4>
+                            <div id="recent-activity" class="analytics-list">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <!-- Quick Add Modal -->
+    <div id="quick-add-modal" class="quick-add-modal hidden" role="dialog" aria-labelledby="quick-add-modal-title">
+        <div class="quick-add-content">
+            <h3 id="quick-add-modal-title">Add New Bookmark</h3>
+            <form id="quick-add-form">
+                <div class="form-group">
+                    <label for="quick-title">Title:</label>
+                    <input type="text" id="quick-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="quick-url">URL:</label>
+                    <input type="url" id="quick-url" required>
+                </div>
+                <div class="form-group">
+                    <label for="quick-category">Category:</label>
+                    <input type="text" id="quick-category" list="quick-categories-list" placeholder="Type or select a category">
+                    <datalist id="quick-categories-list">
+                        <!-- Categories will be added dynamically -->
+                    </datalist>
+                </div>
+                <div class="quick-actions">
+                    <button type="button" id="cancel-quick-add" class="btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Bookmark</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Templates -->
+    <template id="bookmark-template">
+        <div class="bookmark-item" role="listitem">
+            <div class="bookmark-info">
+                <div class="bookmark-title"></div>
+                <div class="bookmark-category"></div>
+            </div>
+            <div class="bookmark-icon">
+                <img src="" alt="">
+            </div>
+            <div class="bookmark-actions">
+                <button class="bookmark-menu-btn" title="Actions">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="bookmark-actions-menu">
+                    <button class="edit-bookmark">
+                        <i class="fas fa-edit"></i>
+                        <span>Edit</span>
+                    </button>
+                    <button class="delete-bookmark">
+                        <i class="fas fa-trash"></i>
+                        <span>Delete</span>
+                    </button>
+                    <button class="share-bookmark">
+                        <i class="fas fa-share-alt"></i>
+                        <span>Share</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- List view template -->
+    <template id="bookmark-list-template">
+        <div class="bookmark-item" role="listitem">
+            <div class="bookmark-icon">
+                <img src="" alt="">
+            </div>
+            <div class="bookmark-info">
+                <div class="bookmark-title"></div>
+                <div class="bookmark-url"></div>
+            </div>
+            <div class="bookmark-category"></div>
+            <div class="bookmark-actions">
+                <button class="edit-bookmark" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="delete-bookmark" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+                <button class="share-bookmark" title="Share">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Keyboard shortcuts help -->
+    <div id="keyboard-shortcuts" class="keyboard-shortcuts hidden" role="dialog" aria-labelledby="keyboard-shortcuts-title">
+        <div class="shortcuts-content">
+            <h3 id="keyboard-shortcuts-title">Keyboard Shortcuts</h3>
+            <ul>
+                <li><kbd>/</kbd> or <kbd>Ctrl</kbd>+<kbd>F</kbd> - Search bookmarks</li>
+                <li><kbd>Esc</kbd> - Close panels</li>
+                <li><kbd>?</kbd> - Show this help</li>
+                <li><kbd>A</kbd> - Open admin panel</li>
+                <li><kbd>T</kbd> - Toggle dark/light mode</li>
+                <li><kbd>G</kbd> - Cycle grid size</li>
+            </ul>
+            <button id="close-shortcuts" class="btn">Close</button>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner hidden" role="status" aria-live="polite"></div>
+
+    <!-- Load sample data first -->
+    <script src="src/utils/sample-data.js"></script>
+    <!-- Load the main application -->
+    <script src="app.js?v=2025060616"></script>
+    <script>
+        // Only register service worker for HTTP/HTTPS protocols
+        if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.protocol === 'http:')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed: ', error);
+                    });
+            });
+        }
+
+        // Mobile nav toggle functionality - wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileNavToggle = document.getElementById('mobile-nav-toggle');
+            const mobileNav = document.getElementById('mobile-nav');
+            
+            if (mobileNavToggle && mobileNav) {
+                mobileNavToggle.addEventListener('click', () => {
+                    mobileNav.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
+</body>
+</html>
