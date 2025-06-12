@@ -1,6 +1,6 @@
 {
   "name": "bookmark-manager",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Advanced Bookmark Manager with Native App Launching",
   "main": "main.js",
   "scripts": {
