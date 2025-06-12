@@ -28,6 +28,7 @@ A powerful, modern bookmark manager and application launcher built with Electron
 - Customizable themes and layouts
 
 ### ⚡ Advanced Features
+- **🔄 Automatic Updates** - Auto-update from GitHub releases with user control
 - Real-time search across bookmarks and applications
 - Category-based filtering and organization
 - Export data in multiple formats (JSON, CSV)
@@ -97,6 +98,25 @@ npm run build
 - Use the search function to quickly find items
 - Sort by various criteria (date, name, usage, etc.)
 
+### Auto-Updates
+The app automatically checks for updates and can download/install them with your permission:
+
+1. **Automatic Updates** (Default: Enabled)
+   - Checks for updates on startup and every 6 hours
+   - Shows notification when updates are available
+   - Downloads with user consent only
+
+2. **Manual Updates**
+   - Go to Settings → Application Settings
+   - Click "Check for Updates" 
+   - View current version and update status
+
+3. **Update Process**
+   - Update notification appears in top-right corner
+   - Choose to download now or later
+   - Progress bar shows download status
+   - Restart prompt when ready to install
+
 ### Keyboard Shortcuts
 - `/` or `Ctrl+F` - Search bookmarks
 - `Esc` - Close panels
@@ -163,10 +183,45 @@ npm test
 npm run build
 
 # Build for specific platform
-npm run build:mac
-npm run build:win
-npm run build:linux
+npm run build-mac
+npm run build-win
+npm run build-linux
+
+# Release with auto-update (requires GitHub token)
+npm run release
+npm run release-mac
+npm run release-win
+npm run release-linux
 ```
+
+### Publishing Updates
+
+To publish a new version with auto-update support:
+
+1. **Update Version Number**:
+   ```bash
+   npm version patch  # 1.0.1 -> 1.0.2
+   npm version minor  # 1.0.1 -> 1.1.0
+   npm version major  # 1.0.1 -> 2.0.0
+   ```
+
+2. **Update CHANGELOG.md** with new features and fixes
+
+3. **Set GitHub Token** (for automated releases):
+   ```bash
+   export GH_TOKEN="your_github_personal_access_token"
+   ```
+
+4. **Build and Publish**:
+   ```bash
+   npm run release  # Builds for all platforms and creates GitHub release
+   ```
+
+5. **Manual Release** (alternative):
+   - Build: `npm run build`
+   - Create GitHub release manually
+   - Upload build artifacts (.dmg, .exe, .AppImage)
+   - Users will be notified of the update automatically
 
 ## Contributing
 

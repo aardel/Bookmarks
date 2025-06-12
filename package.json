@@ -9,8 +9,14 @@
     "build": "electron-builder",
     "build-mac": "electron-builder --mac",
     "build-win": "electron-builder --win",
+    "build-linux": "electron-builder --linux",
     "pack": "electron-builder --dir",
-    "dist": "npm run build"
+    "dist": "npm run build",
+    "release": "electron-builder --publish=always",
+    "release-mac": "electron-builder --mac --publish=always",
+    "release-win": "electron-builder --win --publish=always",
+    "release-linux": "electron-builder --linux --publish=always",
+    "version": "echo $npm_package_version"
   },
   "keywords": [
     "bookmarks",
