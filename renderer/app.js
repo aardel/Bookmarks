@@ -774,6 +774,324 @@ class BookmarkManager {
 // Create bookmark manager instance
 const bookmarkManager = new BookmarkManager();
 
+// Update Manager
+class UpdateManager {
+    constructor() {
+        this.currentVersion = '1.0.1';
+        this.updateInfo = null;
+        this.isChecking = false;
+        this.autoUpdateEnabled = true;
+        this.checkInterval = null;
+        
+        this.elements = {
+            notification: document.getElementById('update-notification'),
+            title: document.getElementById('update-title'),
+            message: document.getElementById('update-message'),
+            progress: document.getElementById('update-progress'),
+            progressFill: document.getElementById('progress-fill'),
+            progressText: document.getElementById('progress-text'),
+            downloadBtn: document.getElementById('update-download'),
+            installBtn: document.getElementById('update-install'),
+            laterBtn: document.getElementById('update-later'),
+            closeBtn: document.getElementById('update-close'),
+            currentVersion: document.getElementById('current-version'),
+            versionStatus: document.getElementById('version-status'),
+            checkBtn: document.getElementById('check-updates-btn'),
+            viewReleasesBtn: document.getElementById('view-releases-btn'),
+            autoUpdateToggle: document.getElementById('auto-update-toggle')
+        };
+        
+        this.init();
+    }
+    
+    init() {
+        this.loadCurrentVersion();
+        this.setupEventListeners();
+        this.setupUpdateListener();
+        this.loadAutoUpdatePreference();
+    }
+    
+    async loadCurrentVersion() {
+        try {
+            if (Utils.isElectron() && window.electronAPI?.getAppVersion) {
+                this.currentVersion = await window.electronAPI.getAppVersion();
+            }
+            
+            if (this.elements.currentVersion) {
+                this.elements.currentVersion.textContent = `v${this.currentVersion}`;
+            }
+        } catch (error) {
+            console.error('Failed to load app version:', error);
+        }
+    }
+    
+    setupEventListeners() {
+        // Update notification buttons
+        if (this.elements.downloadBtn) {
+            this.elements.downloadBtn.addEventListener('click', () => this.downloadUpdate());
+        }
+        
+        if (this.elements.installBtn) {
+            this.elements.installBtn.addEventListener('click', () => this.installUpdate());
+        }
+        
+        if (this.elements.laterBtn) {
+            this.elements.laterBtn.addEventListener('click', () => this.hideNotification());
+        }
+        
+        if (this.elements.closeBtn) {
+            this.elements.closeBtn.addEventListener('click', () => this.hideNotification());
+        }
+        
+        // Settings panel buttons
+        if (this.elements.checkBtn) {
+            this.elements.checkBtn.addEventListener('click', () => this.checkForUpdates(true));
+        }
+        
+        if (this.elements.viewReleasesBtn) {
+            this.elements.viewReleasesBtn.addEventListener('click', () => this.viewReleases());
+        }
+        
+        if (this.elements.autoUpdateToggle) {
+            this.elements.autoUpdateToggle.addEventListener('change', (e) => {
+                this.setAutoUpdateEnabled(e.target.checked);
+            });
+        }
+    }
+    
+    setupUpdateListener() {
+        if (Utils.isElectron() && window.electronAPI?.onUpdaterMessage) {
+            window.electronAPI.onUpdaterMessage((event, data) => {
+                this.handleUpdateMessage(data);
+            });
+        }
+    }
+    
+    loadAutoUpdatePreference() {
+        const saved = localStorage.getItem('autoUpdateEnabled');
+        if (saved !== null) {
+            this.autoUpdateEnabled = JSON.parse(saved);
+            if (this.elements.autoUpdateToggle) {
+                this.elements.autoUpdateToggle.checked = this.autoUpdateEnabled;
+            }
+        }
+    }
+    
+    setAutoUpdateEnabled(enabled) {
+        this.autoUpdateEnabled = enabled;
+        localStorage.setItem('autoUpdateEnabled', JSON.stringify(enabled));
+        
+        if (enabled) {
+            notificationService.success('Automatic updates enabled');
+        } else {
+            notificationService.info('Automatic updates disabled');
+        }
+    }
+    
+    async checkForUpdates(manual = false) {
+        if (this.isChecking) {
+            if (manual) {
+                notificationService.info('Already checking for updates...');
+            }
+            return;
+        }
+        
+        this.isChecking = true;
+        this.updateStatus('checking', 'Checking for updates...');
+        
+        if (this.elements.checkBtn) {
+            this.elements.checkBtn.disabled = true;
+            this.elements.checkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+        }
+        
+        try {
+            if (Utils.isElectron() && window.electronAPI?.checkForUpdates) {
+                const result = await window.electronAPI.checkForUpdates();
+                
+                if (result?.error) {
+                    throw new Error(result.error);
+                }
+                
+                if (manual) {
+                    // If manual check and no updates, show notification
+                    setTimeout(() => {
+                        if (!this.updateInfo) {
+                            notificationService.success('You are running the latest version!');
+                        }
+                    }, 2000);
+                }
+            } else {
+                throw new Error('Update checking not available');
+            }
+        } catch (error) {
+            console.error('Update check failed:', error);
+            this.updateStatus('error', `Update check failed: ${error.message}`);
+            
+            if (manual) {
+                notificationService.error('Failed to check for updates');
+            }
+        } finally {
+            this.isChecking = false;
+            if (this.elements.checkBtn) {
+                this.elements.checkBtn.disabled = false;
+                this.elements.checkBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Check for Updates';
+            }
+        }
+    }
+    
+    handleUpdateMessage(data) {
+        console.log('Update message received:', data);
+        
+        switch (data.type) {
+            case 'checking':
+                this.updateStatus('checking', 'Checking for updates...');
+                break;
+                
+            case 'available':
+                this.updateInfo = data;
+                this.updateStatus('update-available', `Update available: v${data.version}`);
+                this.showUpdateNotification(data);
+                break;
+                
+            case 'not-available':
+                this.updateStatus('up-to-date', 'You are running the latest version');
+                break;
+                
+            case 'download-progress':
+                this.showDownloadProgress(data.progress);
+                break;
+                
+            case 'downloaded':
+                this.updateInfo = data;
+                this.showUpdateReady(data);
+                break;
+                
+            case 'error':
+                this.updateStatus('error', data.message);
+                break;
+        }
+    }
+    
+    updateStatus(type, message) {
+        if (this.elements.versionStatus) {
+            this.elements.versionStatus.textContent = message;
+            this.elements.versionStatus.className = `version-status ${type}`;
+        }
+    }
+    
+    showUpdateNotification(data) {
+        if (!this.elements.notification) return;
+        
+        this.elements.title.textContent = 'Update Available';
+        this.elements.message.textContent = `Version ${data.version} is now available. Would you like to download it?`;
+        
+        // Show download button, hide others
+        this.elements.downloadBtn.classList.remove('hidden');
+        this.elements.installBtn.classList.add('hidden');
+        this.elements.progress.classList.add('hidden');
+        
+        this.showNotification();
+    }
+    
+    showDownloadProgress(progress) {
+        if (!this.elements.notification) return;
+        
+        this.elements.title.textContent = 'Downloading Update';
+        this.elements.message.textContent = `Downloading v${this.updateInfo?.version || 'latest'}...`;
+        
+        // Show progress, hide buttons
+        this.elements.progress.classList.remove('hidden');
+        this.elements.downloadBtn.classList.add('hidden');
+        this.elements.installBtn.classList.add('hidden');
+        
+        // Update progress bar
+        if (this.elements.progressFill) {
+            this.elements.progressFill.style.width = `${progress.percent}%`;
+        }
+        
+        if (this.elements.progressText) {
+            this.elements.progressText.textContent = 
+                `${progress.percent}% - ${progress.transferred}MB / ${progress.total}MB (${progress.speed} MB/s)`;
+        }
+        
+        this.showNotification();
+    }
+    
+    showUpdateReady(data) {
+        if (!this.elements.notification) return;
+        
+        this.elements.title.textContent = 'Update Ready';
+        this.elements.message.textContent = `Version ${data.version} has been downloaded and is ready to install.`;
+        
+        // Show install button, hide others
+        this.elements.installBtn.classList.remove('hidden');
+        this.elements.downloadBtn.classList.add('hidden');
+        this.elements.progress.classList.add('hidden');
+        
+        this.showNotification();
+    }
+    
+    showNotification() {
+        if (this.elements.notification) {
+            this.elements.notification.classList.remove('hidden');
+        }
+    }
+    
+    hideNotification() {
+        if (this.elements.notification) {
+            this.elements.notification.classList.add('hidden');
+        }
+    }
+    
+    async downloadUpdate() {
+        try {
+            if (Utils.isElectron() && window.electronAPI?.downloadUpdate) {
+                const result = await window.electronAPI.downloadUpdate();
+                if (result?.error) {
+                    throw new Error(result.error);
+                }
+                
+                // Update UI to show downloading state
+                this.elements.title.textContent = 'Downloading Update';
+                this.elements.message.textContent = 'Download started...';
+                this.elements.downloadBtn.classList.add('hidden');
+                
+            } else {
+                throw new Error('Download functionality not available');
+            }
+        } catch (error) {
+            console.error('Download failed:', error);
+            notificationService.error(`Download failed: ${error.message}`);
+        }
+    }
+    
+    async installUpdate() {
+        try {
+            if (Utils.isElectron() && window.electronAPI?.quitAndInstall) {
+                await window.electronAPI.quitAndInstall();
+            } else {
+                throw new Error('Install functionality not available');
+            }
+        } catch (error) {
+            console.error('Install failed:', error);
+            notificationService.error(`Install failed: ${error.message}`);
+        }
+    }
+    
+    viewReleases() {
+        const url = 'https://github.com/aarondelia/bookmark-manager/releases';
+        if (Utils.isElectron() && window.electronAPI?.platform) {
+            // Open in external browser
+            window.open(url, '_blank');
+        } else {
+            window.open(url, '_blank');
+        }
+    }
+}
+
+// Create update manager instance
+const updateManager = new UpdateManager();
+
 // Application Core
 class AppCore {
     constructor() {

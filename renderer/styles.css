@@ -5085,3 +5085,229 @@ body.animations-enabled .bookmark-item:hover {
         font-size: 0.9rem;
     }
 }
+
+/* Update Notification Styles */
+.update-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px var(--shadow);
+    backdrop-filter: blur(20px);
+    z-index: 10000;
+    max-width: 400px;
+    min-width: 320px;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.update-notification.hidden {
+    display: none;
+}
+
+.update-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+}
+
+.update-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--accent-color), #6b8dd6);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.update-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.update-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.update-message {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.update-progress {
+    margin-top: 12px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--bg-primary);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-color), #6b8dd6);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+.progress-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.update-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+.update-actions .btn {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    min-width: 80px;
+}
+
+.update-actions .btn-text {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    font-size: 1.2rem;
+    line-height: 1;
+    min-width: auto;
+}
+
+.update-actions .btn-text:hover {
+    background: var(--tile-hover);
+    color: var(--text-primary);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Version Settings Styles */
+.version-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.version-display {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.version-display label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.version-number {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+.version-status {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.version-status.checking {
+    color: var(--accent-color);
+}
+
+.version-status.up-to-date {
+    color: #28a745;
+}
+
+.version-status.update-available {
+    color: #ffc107;
+}
+
+.version-status.error {
+    color: #dc3545;
+}
+
+.update-actions .update-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.update-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.setting-description {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* Update notification responsive */
+@media (max-width: 768px) {
+    .update-notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        min-width: auto;
+    }
+    
+    .update-content {
+        padding: 16px;
+        gap: 12px;
+    }
+    
+    .update-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    
+    .update-actions {
+        align-items: stretch;
+    }
+    
+    .update-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

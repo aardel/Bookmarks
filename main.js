@@ -1,5 +1,5 @@
 const { app, BrowserWindow, Menu, ipcMain, shell, dialog } = require('electron');
-// const { autoUpdater } = require('electron-updater'); // Commented out for demo
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -54,7 +54,7 @@ function createWindow() {
 app.whenReady().then(() => {
     createWindow();
     createMenu();
-    // setupAutoUpdater(); // Commented out for demo
+    setupAutoUpdater();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -72,17 +72,24 @@ app.on('window-all-closed', () => {
 
 // Setup Auto Updater (commented out for demo)
 function setupAutoUpdater() {
-    // Configure auto updater
-    // autoUpdater.checkForUpdatesAndNotify();
-    
-    // Set update feed URL for production
-    // if (!app.isPackaged) {
-    //     autoUpdater.updateConfigPath = path.join(__dirname, 'dev-app-update.yml');
-    // }
+    // Configure auto updater for GitHub releases
+    autoUpdater.setFeedURL({
+        provider: 'github',
+        owner: 'aarondelia',
+        repo: 'bookmark-manager',
+        private: false
+    });
 
-    // Auto updater events - all commented out for demo
-    /* 
-    // All auto-updater functionality commented out for demo
+    // Configure auto updater settings
+    autoUpdater.autoDownload = false; // Don't auto-download, ask user first
+    autoUpdater.autoInstallOnAppQuit = false; // Don't auto-install on quit
+
+    // Set update feed URL for development
+    if (!app.isPackaged) {
+        autoUpdater.updateConfigPath = path.join(__dirname, 'dev-app-update.yml');
+    }
+
+    // Auto updater event handlers
     autoUpdater.on('checking-for-update', () => {
         console.log('Checking for update...');
         if (mainWindow) {
@@ -98,19 +105,41 @@ function setupAutoUpdater() {
         if (mainWindow) {
             mainWindow.webContents.send('updater-message', {
                 type: 'available',
-                message: 'Update available. Downloading...',
-                version: info.version
+                message: `Update available: v${info.version}`,
+                version: info.version,
+                releaseNotes: info.releaseNotes,
+                releaseDate: info.releaseDate
             });
+        }
+
+        // Show dialog to user asking if they want to download
+        const response = dialog.showMessageBoxSync(mainWindow, {
+            type: 'info',
+            buttons: ['Download Now', 'Later', 'View Release Notes'],
+            defaultId: 0,
+            title: 'Update Available',
+            message: `A new version (v${info.version}) is available!`,
+            detail: 'Would you like to download it now?'
+        });
+
+        if (response === 0) {
+            // User chose to download
+            autoUpdater.downloadUpdate();
+        } else if (response === 2) {
+            // User wants to view release notes
+            if (info.releaseNotes) {
+                shell.openExternal(`https://github.com/aarondelia/bookmark-manager/releases/tag/v${info.version}`);
+            }
         }
     });
 
     autoUpdater.on('update-not-available', (info) => {
-        console.log('Update not available:', info);
+        console.log('Update not available. Current version:', app.getVersion());
         if (mainWindow) {
             mainWindow.webContents.send('updater-message', {
                 type: 'not-available',
-                message: 'You are running the latest version.',
-                version: info.version
+                message: `You are running the latest version (v${app.getVersion()}).`,
+                version: app.getVersion()
             });
         }
     });
@@ -120,22 +149,27 @@ function setupAutoUpdater() {
         if (mainWindow) {
             mainWindow.webContents.send('updater-message', {
                 type: 'error',
-                message: 'Update error: ' + err.message
+                message: 'Update check failed: ' + err.message
             });
         }
     });
 
     autoUpdater.on('download-progress', (progressObj) => {
-        let logMessage = `Download speed: ${progressObj.bytesPerSecond}`;
-        logMessage += ` - Downloaded ${progressObj.percent}%`;
-        logMessage += ` (${progressObj.transferred}/${progressObj.total})`;
+        let logMessage = `Download speed: ${(progressObj.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s`;
+        logMessage += ` - Downloaded ${Math.round(progressObj.percent)}%`;
+        logMessage += ` (${(progressObj.transferred / 1024 / 1024).toFixed(2)}/${(progressObj.total / 1024 / 1024).toFixed(2)} MB)`;
         console.log(logMessage);
         
         if (mainWindow) {
             mainWindow.webContents.send('updater-message', {
                 type: 'download-progress',
                 message: `Downloading update... ${Math.round(progressObj.percent)}%`,
-                progress: progressObj
+                progress: {
+                    percent: Math.round(progressObj.percent),
+                    transferred: (progressObj.transferred / 1024 / 1024).toFixed(2),
+                    total: (progressObj.total / 1024 / 1024).toFixed(2),
+                    speed: (progressObj.bytesPerSecond / 1024 / 1024).toFixed(2)
+                }
             });
         }
     });
@@ -145,7 +179,7 @@ function setupAutoUpdater() {
         if (mainWindow) {
             mainWindow.webContents.send('updater-message', {
                 type: 'downloaded',
-                message: 'Update downloaded. Restart to apply.',
+                message: `Update v${info.version} downloaded. Ready to install.`,
                 version: info.version
             });
         }
@@ -154,8 +188,10 @@ function setupAutoUpdater() {
         const response = dialog.showMessageBoxSync(mainWindow, {
             type: 'info',
             buttons: ['Restart Now', 'Later'],
-            title: 'Update Ready',
-            message: 'A new version has been downloaded. Restart the application to apply the update.'
+            defaultId: 0,
+            title: 'Update Downloaded',
+            message: `Update v${info.version} has been downloaded successfully!`,
+            detail: 'Restart the application now to apply the update, or you can restart later.'
         });
 
         if (response === 0) {
@@ -163,27 +199,49 @@ function setupAutoUpdater() {
         }
     });
 
-    // Check for updates on startup and then every 4 hours
+    // Check for updates on startup (after a delay)
     setTimeout(() => {
+        console.log('Performing initial update check...');
         autoUpdater.checkForUpdatesAndNotify();
-    }, 5000); // Wait 5 seconds after startup
+    }, 10000); // Wait 10 seconds after startup
 
+    // Check for updates periodically (every 6 hours)
     setInterval(() => {
+        console.log('Performing periodic update check...');
         autoUpdater.checkForUpdatesAndNotify();
-    }, 4 * 60 * 60 * 1000); // Every 4 hours
-    */
+    }, 6 * 60 * 60 * 1000); // Every 6 hours
 }
 
-// IPC handlers for updater (commented out for demo)
-/*
-ipcMain.handle('check-for-updates', () => {
-    autoUpdater.checkForUpdatesAndNotify();
+// IPC handlers for updater
+ipcMain.handle('check-for-updates', async () => {
+    try {
+        const result = await autoUpdater.checkForUpdatesAndNotify();
+        return result;
+    } catch (error) {
+        console.error('Manual update check failed:', error);
+        return { error: error.message };
+    }
+});
+
+ipcMain.handle('download-update', () => {
+    try {
+        autoUpdater.downloadUpdate();
+        return { success: true };
+    } catch (error) {
+        console.error('Download update failed:', error);
+        return { error: error.message };
+    }
 });
 
 ipcMain.handle('quit-and-install', () => {
-    autoUpdater.quitAndInstall();
+    try {
+        autoUpdater.quitAndInstall();
+        return { success: true };
+    } catch (error) {
+        console.error('Quit and install failed:', error);
+        return { error: error.message };
+    }
 });
-*/
 
 ipcMain.handle('get-app-version', () => {
     return app.getVersion();

@@ -627,6 +627,43 @@
                         </div>
                     </form>
                 </div>
+
+                <div class="admin-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-cog"></i> Application Settings</h3>
+                        <p class="section-description">Manage application updates and version information</p>
+                    </div>
+                    
+                    <div class="settings-grid">
+                        <div class="setting-item version-info">
+                            <div class="version-display">
+                                <label>Current Version</label>
+                                <div class="version-number" id="current-version">v1.0.0</div>
+                                <div class="version-status" id="version-status">Checking for updates...</div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item update-actions">
+                            <div class="update-buttons">
+                                <button id="check-updates-btn" class="btn btn-secondary">
+                                    <i class="fas fa-sync-alt"></i> Check for Updates
+                                </button>
+                                <button id="view-releases-btn" class="btn btn-secondary">
+                                    <i class="fas fa-external-link-alt"></i> View Releases
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label for="auto-update-toggle">Automatic Updates</label>
+                            <label class="switch">
+                                <input type="checkbox" id="auto-update-toggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                            <small class="setting-description">Automatically check for and download updates</small>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Analytics Tab -->
@@ -805,6 +842,31 @@
                 <li><kbd>G</kbd> - Cycle grid size</li>
             </ul>
             <button id="close-shortcuts" class="btn">Close</button>
+        </div>
+    </div>
+
+    <!-- Update Notification -->
+    <div id="update-notification" class="update-notification hidden" role="alert">
+        <div class="update-content">
+            <div class="update-icon">
+                <i class="fas fa-download"></i>
+            </div>
+            <div class="update-info">
+                <div class="update-title" id="update-title">Update Available</div>
+                <div class="update-message" id="update-message">A new version is available</div>
+                <div class="update-progress hidden" id="update-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div class="progress-text" id="progress-text">Downloading...</div>
+                </div>
+            </div>
+            <div class="update-actions">
+                <button id="update-download" class="btn btn-primary hidden">Download</button>
+                <button id="update-install" class="btn btn-primary hidden">Install & Restart</button>
+                <button id="update-later" class="btn btn-secondary">Later</button>
+                <button id="update-close" class="btn btn-text">×</button>
+            </div>
         </div>
     </div>
 
