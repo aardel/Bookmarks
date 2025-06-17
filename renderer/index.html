@@ -185,7 +185,7 @@
                     <form id="add-bookmark-form" class="modern-form">
                         <div class="form-group">
                             <label for="bookmark-type">Type *</label>
-                            <select id="bookmark-type" required>
+                            <select id="bookmark-type" name="bookmark-type" required>
                                 <option value="website">🌐 Website / Web Link</option>
                                 <option value="program">🖥️ Program / Application</option>
                                 <option value="protocol">🔗 Custom Protocol (app://)</option>
@@ -195,12 +195,12 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="bookmark-title">Title *</label>
-                                <input type="text" id="bookmark-title" required placeholder="e.g., Adobe Illustrator or Google">
+                                <input type="text" id="bookmark-title" name="bookmark-title" required placeholder="e.g., Adobe Illustrator or Google">
                             </div>
                             <div class="form-group" id="url-program-group">
                                 <label for="bookmark-url" id="url-label">URL *</label>
                                 <div class="input-with-button">
-                                    <input type="text" id="bookmark-url" required placeholder="https://example.com" list="detected-programs">
+                                    <input type="text" id="bookmark-url" name="bookmark-url" required placeholder="https://example.com" list="detected-programs">
                                     <button type="button" id="scan-apps-btn" class="scan-btn hidden">
                                         <i class="fas fa-search"></i> Scan Apps
                                     </button>
@@ -215,20 +215,20 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="bookmark-category">Category</label>
-                                <input type="text" id="bookmark-category" list="categories-list" placeholder="Select or create category">
+                                <input type="text" id="bookmark-category" name="bookmark-category" list="categories-list" placeholder="Select or create category">
                                 <datalist id="categories-list">
                                     <!-- Categories will be added dynamically -->
                                 </datalist>
                             </div>
                             <div class="form-group">
                                 <label for="bookmark-color">Color</label>
-                                <input type="color" id="bookmark-color" value="#ffffff">
+                                <input type="color" id="bookmark-color" name="bookmark-color" value="#ffffff">
                             </div>
                         </div>
                         
                         <div class="form-group">
                             <label for="bookmark-tags">Tags</label>
-                            <input type="text" id="bookmark-tags" placeholder="Enter tags separated by commas">
+                            <input type="text" id="bookmark-tags" name="bookmark-tags" placeholder="Enter tags separated by commas">
                             <small class="form-hint">Separate multiple tags with commas</small>
                         </div>
                         
@@ -237,11 +237,11 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="bookmark-icon">Custom Icon URL</label>
-                                    <input type="url" id="bookmark-icon" placeholder="https://example.com/icon.png">
+                                    <input type="url" id="bookmark-icon" name="bookmark-icon" placeholder="https://example.com/icon.png">
                                 </div>
                                 <div class="form-group">
                                     <label for="bookmark-reminder">Reminder (days)</label>
-                                    <input type="number" id="bookmark-reminder" min="1" max="365" placeholder="7">
+                                    <input type="number" id="bookmark-reminder" name="bookmark-reminder" min="1" max="365" placeholder="7">
                                 </div>
                             </div>
                         </details>

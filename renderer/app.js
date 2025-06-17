@@ -135,6 +135,16 @@ class NotificationService {
 
     init() {
         this.createContainer();
+        this.setupKeyboardShortcuts();
+    }
+
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.notifications.size > 0) {
+                console.log('Escape key pressed, dismissing all notifications');
+                this.dismissAll();
+            }
+        });
     }
 
     createContainer() {
@@ -162,11 +172,15 @@ class NotificationService {
             notification.classList.add('show');
         });
 
-        const duration = options.duration || this.getDefaultDuration(type);
+        const duration = options.duration !== undefined ? options.duration : this.getDefaultDuration(type);
         if (duration > 0) {
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
+                console.log('Auto-dismissing notification after timeout:', id);
                 this.dismiss(id);
             }, duration);
+            
+            // Store timeout ID so we can cancel it if manually dismissed
+            notification.timeoutId = timeoutId;
         }
 
         return id;
@@ -219,19 +233,52 @@ class NotificationService {
         if (options.closable !== false) {
             const closeBtn = document.createElement('button');
             closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            closeBtn.className = 'notification-close-btn';
+            closeBtn.setAttribute('aria-label', 'Close notification');
             closeBtn.style.cssText = `
                 background: none;
                 border: none;
                 color: inherit;
                 cursor: pointer;
-                padding: 4px;
+                padding: 6px;
                 border-radius: 4px;
-                opacity: 0.6;
-                transition: opacity 0.2s;
+                opacity: 0.7;
+                transition: opacity 0.2s, background-color 0.2s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 24px;
+                min-height: 24px;
+                margin-left: 8px;
+                flex-shrink: 0;
             `;
-            closeBtn.onmouseover = () => closeBtn.style.opacity = '1';
-            closeBtn.onmouseout = () => closeBtn.style.opacity = '0.6';
-            closeBtn.onclick = () => this.dismiss(id);
+            
+            // Enhanced event handling
+            closeBtn.addEventListener('mouseover', () => {
+                closeBtn.style.opacity = '1';
+                closeBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            });
+            
+            closeBtn.addEventListener('mouseout', () => {
+                closeBtn.style.opacity = '0.7';
+                closeBtn.style.backgroundColor = 'transparent';
+            });
+            
+            closeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Close button clicked for notification:', id);
+                this.dismiss(id);
+            });
+            
+            // Also allow dismissing by clicking the notification itself
+            notification.addEventListener('click', (e) => {
+                if (e.target === notification || e.target === content || e.target === messageEl) {
+                    console.log('Notification clicked for dismissal:', id);
+                    this.dismiss(id);
+                }
+            });
+            
             content.appendChild(closeBtn);
         }
 
@@ -265,18 +312,51 @@ class NotificationService {
     }
 
     dismiss(id) {
+        console.log('Attempting to dismiss notification:', id);
         const notification = this.notifications.get(id);
-        if (!notification) return;
+        if (!notification) {
+            console.log('Notification not found:', id);
+            return;
+        }
 
+        console.log('Dismissing notification:', id);
+        
+        // Add dismissing class to prevent multiple dismissals
+        if (notification.classList.contains('dismissing')) {
+            console.log('Already dismissing:', id);
+            return;
+        }
+        
+        notification.classList.add('dismissing');
         notification.style.transform = 'translateX(100%)';
         notification.style.opacity = '0';
+        notification.style.pointerEvents = 'none';
+
+        // Clear auto-dismiss timeout if it exists
+        if (notification.timeoutId) {
+            clearTimeout(notification.timeoutId);
+            console.log('Cleared auto-dismiss timeout for:', id);
+        }
 
         setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
+            try {
+                if (notification && notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                    console.log('Notification removed from DOM:', id);
+                }
+                this.notifications.delete(id);
+                console.log('Notification deleted from map:', id);
+            } catch (error) {
+                console.error('Error removing notification:', error);
             }
-            this.notifications.delete(id);
-        }, 300);
+        }, 350);
+    }
+
+    dismissAll() {
+        console.log('Dismissing all notifications');
+        this.notifications.forEach((notification, id) => {
+            this.dismiss(id);
+        });
     }
 
     info(message, options = {}) { return this.show(message, 'info', options); }
@@ -1166,6 +1246,12 @@ class AppCore {
             await bookmarkManager.init();
             this.loadDemoDataIfEmpty();
             this.setupGlobalEventListeners();
+            
+            // Initial render of content
+            bookmarkManager.renderBookmarks();
+            bookmarkManager.updateCategoriesUI();
+            this.loadBookmarkSuggestions();
+            
             this.hideLoadingState();
             
             this.initialized = true;
@@ -2039,7 +2125,16 @@ class AppCore {
 
     toggleAdminPanel() {
         if (this.elements.adminPanel) {
+            const wasHidden = this.elements.adminPanel.classList.contains('hidden');
             this.elements.adminPanel.classList.toggle('hidden');
+            
+            // If we're opening the panel (was hidden), update the color inputs
+            if (wasHidden) {
+                // Small delay to ensure the panel is visible before updating colors
+                setTimeout(() => {
+                    this.updateThemeColorInputs();
+                }, 100);
+            }
         }
     }
 
@@ -3306,7 +3401,51 @@ class AppCore {
     }
 
     handleSaveTheme() {
-        notificationService.success('Theme saved!');
+        // Get values from color inputs
+        const bgPrimary = document.getElementById('theme-bg-primary')?.value;
+        const bgSecondary = document.getElementById('theme-bg-secondary')?.value;
+        const textPrimary = document.getElementById('theme-text-primary')?.value;
+        const textSecondary = document.getElementById('theme-text-secondary')?.value;
+        const accentColor = document.getElementById('theme-accent-color')?.value;
+
+        if (!bgPrimary || !bgSecondary || !textPrimary || !textSecondary || !accentColor) {
+            notificationService.error('Please set all color values');
+            return;
+        }
+
+        // Apply custom colors to CSS variables
+        const root = document.documentElement;
+        root.style.setProperty('--bg-primary', bgPrimary);
+        root.style.setProperty('--bg-secondary', bgSecondary);
+        root.style.setProperty('--text-primary', textPrimary);
+        root.style.setProperty('--text-secondary', textSecondary);
+        root.style.setProperty('--accent-color', accentColor);
+
+        // Update preset button active state
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector('[data-theme="custom"]')?.classList.add('active');
+
+        // Save custom theme to state
+        const customTheme = {
+            isDarkMode: false, // Custom theme is considered light mode
+            customColors: {
+                '--bg-primary': bgPrimary,
+                '--bg-secondary': bgSecondary,
+                '--text-primary': textPrimary,
+                '--text-secondary': textSecondary,
+                '--accent-color': accentColor
+            }
+        };
+
+        stateManager.setState({ 
+            isDarkMode: customTheme.isDarkMode,
+            customTheme: customTheme
+        });
+        stateManager.saveToStorage();
+
+        notificationService.success('Custom theme saved and applied!');
     }
 
     handleResetTheme() {
@@ -3373,8 +3512,145 @@ class AppCore {
         });
         document.querySelector(`[data-theme="${theme}"]`)?.classList.add('active');
 
+        // Update color inputs to reflect current theme
+        this.updateThemeColorInputs(theme, selectedTheme);
+
         stateManager.saveToStorage();
         notificationService.success(`${selectedTheme.name} applied!`);
+    }
+
+    updateThemeColorInputs(themeName = null, themeData = null) {
+        console.log('Updating theme color inputs for theme:', themeName);
+        
+        // Define default theme colors
+        const themeColors = {
+            light: {
+                'theme-bg-primary': '#f8f9fa',
+                'theme-bg-secondary': '#ffffff',
+                'theme-text-primary': '#333333',
+                'theme-text-secondary': '#666666',
+                'theme-accent-color': '#4a6da7'
+            },
+            dark: {
+                'theme-bg-primary': '#1a1a1a',
+                'theme-bg-secondary': '#2d2d2d',
+                'theme-text-primary': '#ffffff',
+                'theme-text-secondary': '#cccccc',
+                'theme-accent-color': '#8e24aa'
+            },
+            blue: {
+                'theme-bg-primary': '#e3f2fd',
+                'theme-bg-secondary': '#bbdefb',
+                'theme-text-primary': '#333333',
+                'theme-text-secondary': '#666666',
+                'theme-accent-color': '#1976d2'
+            },
+            custom: {
+                'theme-bg-primary': '#f8f9fa',
+                'theme-bg-secondary': '#ffffff',
+                'theme-text-primary': '#333333',
+                'theme-text-secondary': '#666666',
+                'theme-accent-color': '#4a6da7'
+            }
+        };
+
+        // Use predefined colors if theme is specified
+        let colorsToUse = {};
+        if (themeName && themeColors[themeName]) {
+            colorsToUse = themeColors[themeName];
+            console.log('Using predefined colors for', themeName, colorsToUse);
+        } else {
+            // Fallback to computed styles
+            const computedStyle = getComputedStyle(document.documentElement);
+            
+            const colorInputs = {
+                'theme-bg-primary': '--bg-primary',
+                'theme-bg-secondary': '--bg-secondary', 
+                'theme-text-primary': '--text-primary',
+                'theme-text-secondary': '--text-secondary',
+                'theme-accent-color': '--accent-color'
+            };
+
+            Object.entries(colorInputs).forEach(([inputId, cssVariable]) => {
+                let currentValue = computedStyle.getPropertyValue(cssVariable).trim();
+                
+                if (!currentValue || currentValue === '') {
+                    // Fallback: get actual computed color from a test element
+                    const testElement = document.createElement('div');
+                    testElement.style.color = `var(${cssVariable})`;
+                    testElement.style.position = 'absolute';
+                    testElement.style.visibility = 'hidden';
+                    document.body.appendChild(testElement);
+                    
+                    const testComputedStyle = getComputedStyle(testElement);
+                    currentValue = testComputedStyle.color;
+                    document.body.removeChild(testElement);
+                }
+                
+                if (currentValue && currentValue !== '' && currentValue !== 'rgba(0, 0, 0, 0)') {
+                    const hexColor = this.convertColorToHex(currentValue);
+                    if (hexColor) {
+                        colorsToUse[inputId] = hexColor;
+                    }
+                }
+            });
+        }
+
+        // Apply the colors to the inputs
+        Object.entries(colorsToUse).forEach(([inputId, color]) => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.value = color;
+                console.log(`Set ${inputId} to ${color}`);
+            } else {
+                console.log(`Input ${inputId} not found`);
+            }
+        });
+    }
+
+    convertColorToHex(color) {
+        console.log('Converting color:', color);
+        
+        // If already hex, return as-is
+        if (color.startsWith('#')) {
+            return color;
+        }
+        
+        // Handle RGB/RGBA format
+        const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
+        if (rgbMatch) {
+            const r = parseInt(rgbMatch[1]);
+            const g = parseInt(rgbMatch[2]);
+            const b = parseInt(rgbMatch[3]);
+            const hex = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+            console.log(`RGB(${r}, ${g}, ${b}) converted to ${hex}`);
+            return hex;
+        }
+        
+        // Fallback: create a temporary element to convert color to RGB
+        const tempElement = document.createElement('div');
+        tempElement.style.color = color;
+        tempElement.style.position = 'absolute';
+        tempElement.style.visibility = 'hidden';
+        document.body.appendChild(tempElement);
+        
+        const rgb = getComputedStyle(tempElement).color;
+        document.body.removeChild(tempElement);
+        
+        console.log(`Fallback conversion of "${color}" resulted in "${rgb}"`);
+        
+        // Try to convert the RGB result
+        const fallbackRgbMatch = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
+        if (fallbackRgbMatch) {
+            const r = parseInt(fallbackRgbMatch[1]);
+            const g = parseInt(fallbackRgbMatch[2]);
+            const b = parseInt(fallbackRgbMatch[3]);
+            const hex = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+            console.log(`Fallback RGB(${r}, ${g}, ${b}) converted to ${hex}`);
+            return hex;
+        }
+        
+        return color;
     }
 
     handleRefreshSuggestions() {
