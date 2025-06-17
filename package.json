@@ -76,7 +76,9 @@
           ]
         }
       ],
-      "compression": "maximum"
+      "compression": "maximum",
+      "identity": null,
+      "gatekeeperAssess": false
     },
     "win": {
       "icon": "assets/icon.png",
