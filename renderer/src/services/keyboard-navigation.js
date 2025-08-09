@@ -78,7 +78,7 @@ class KeyboardNavigation {
         
         // Sequences
         this.registerSequence('gg', () => this.goToTop(), 'Go to top');
-        this.registerSequence('G', () => this.goToBottom(), 'Go to bottom');
+        this.registerSequence('shift+g', () => this.goToBottom(), 'Go to bottom');
         this.registerSequence('dd', () => this.deleteSelected(), 'Delete selected');
         this.registerSequence('yy', () => this.copySelected(), 'Copy selected');
         this.registerSequence('pp', () => this.pasteAtCursor(), 'Paste');

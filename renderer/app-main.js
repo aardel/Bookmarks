@@ -1786,8 +1786,8 @@ class AppCore {
             showInFinderBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 try {
-                    if (window.electronAPI && window.electronAPI.showInFinder) {
-                        await window.electronAPI.showInFinder(app.path);
+                    if (window.electronAPI && window.electronAPI.showItemInFolder) {
+                        await window.electronAPI.showItemInFolder(app.path);
                         notificationService.success(`Revealed ${app.name} in Finder`);
                     } else {
                         notificationService.warning('Show in Finder requires Electron environment');

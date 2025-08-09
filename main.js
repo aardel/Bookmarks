@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Menu, ipcMain, shell, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const fs = require('fs');
 
 // Keep a global reference of the window object
@@ -45,8 +45,23 @@ function createWindow() {
 
     // Handle external links
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        shell.openExternal(url);
+        const isAllowed = /^https?:\/\//i.test(url) || url.startsWith('mailto:');
+        if (isAllowed) {
+            shell.openExternal(url);
+        }
         return { action: 'deny' };
+    });
+
+    // Prevent navigation to arbitrary external URLs inside the app window
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+        const isSameOrigin = false; // renderer loads from file://; disallow external
+        const isAllowed = /^https?:\/\//i.test(url) || url.startsWith('mailto:');
+        if (!isSameOrigin && isAllowed) {
+            event.preventDefault();
+            shell.openExternal(url);
+        } else if (!isSameOrigin) {
+            event.preventDefault();
+        }
     });
 }
 
@@ -375,10 +390,9 @@ ipcMain.handle('launch-app', async (event, appPath) => {
             if (appPath.endsWith('.app')) {
                 return await shell.openPath(appPath);
             } else {
-                // For command line tools, use exec
-                exec(`open "${appPath}"`, (error) => {
-                    if (error) console.error('Launch error:', error);
-                });
+                // For command line tools, use spawn to avoid shell injection
+                const child = spawn('open', [appPath], { detached: true, stdio: 'ignore' });
+                child.unref();
                 return '';
             }
         } else if (process.platform === 'win32') {
