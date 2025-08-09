@@ -1702,7 +1702,7 @@ class AppCore {
                     ${Utils.isElectron() ? `
                     <button class="show-in-finder" data-app-path="${app.path}">
                         <i class="fas fa-folder"></i>
-                        <span>Show in Finder</span>
+                        <span>Show in File Manager</span>
                     </button>` : ''}
                     ${app.appStoreUrl ? `
                     <button class="view-app-store" data-url="${app.appStoreUrl}">
@@ -1786,11 +1786,11 @@ class AppCore {
             showInFinderBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 try {
-                    if (window.electronAPI && window.electronAPI.showInFinder) {
-                        await window.electronAPI.showInFinder(app.path);
-                        notificationService.success(`Revealed ${app.name} in Finder`);
+                    if (window.electronAPI && window.electronAPI.showItemInFolder) {
+                        await window.electronAPI.showItemInFolder(app.path);
+                        notificationService.success(`Revealed ${app.name} in your file manager`);
                     } else {
-                        notificationService.warning('Show in Finder requires Electron environment');
+                        notificationService.warning('Reveal in file manager requires Electron environment');
                     }
                 } catch (error) {
                     console.error('Error showing in finder:', error);

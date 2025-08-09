@@ -2,59 +2,82 @@
  * Sample Data for Demo Purposes
  */
 
-// Sample applications for macOS
-const sampleApplications = [
-    {
-        id: 'app-1',
-        name: 'Visual Studio Code',
-        path: '/Applications/Visual Studio Code.app',
-        category: 'Development',
-        iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0iIzAwN0FDQyIvPgo8cGF0aCBkPSJNMTIgMTJIMzZWMzZIMTJWMTJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K',
-        description: 'Code editor',
-        lastUsed: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
-        useCount: 15
-    },
-    {
-        id: 'app-2', 
-        name: 'Chrome',
-        path: '/Applications/Google Chrome.app',
-        category: 'Productivity',
-        iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjAiIGZpbGw9IiNGRkQ5NEMiLz4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMTIiIGZpbGw9IiM0Mjg1RjQiLz4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iNiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+',
-        description: 'Web browser',
-        lastUsed: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-        useCount: 42
-    },
-    {
-        id: 'app-3',
-        name: 'Spotify',
-        path: '/Applications/Spotify.app',
-        category: 'Entertainment',
-        iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjAiIGZpbGw9IiMxREI5NTQiLz4KPHBhdGggZD0iTTE2IDIwSDMyTTE2IDI0SDMyTTE2IDI4SDMyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+',
-        description: 'Music streaming',
-        lastUsed: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
-        useCount: 28
-    },
-    {
-        id: 'app-4',
-        name: 'Terminal',
-        path: '/Applications/Utilities/Terminal.app',
-        category: 'Utilities',
-        iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0iIzAwMCIvPgo8dGV4dCB4PSI4IiB5PSIyNCIgZmlsbD0iIzAwRkYwMCIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSIxMiI+JCB8PC90ZXh0Pgo8L3N2Zz4K',
-        description: 'Terminal emulator',
-        lastUsed: new Date(Date.now() - 1000 * 60 * 10).toISOString(), // 10 minutes ago
-        useCount: 8
-    },
-    {
-        id: 'app-5',
-        name: 'Figma',
-        path: '/Applications/Figma.app',
-        category: 'Development',
-        iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0iI0Y3NkU2QyIvPgo8Y2lyY2xlIGN4PSIzMCIgY3k9IjI0IiByPSI4IiBmaWxsPSIjMUFCQ0ZFIi8+CjxyZWN0IHg9IjEyIiB5PSI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHJ4PSI4IiBmaWxsPSIjRkY3MjYyIi8+Cjwvc3ZnPg==',
-        description: 'Design tool',
-        lastUsed: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(), // 4 hours ago
-        useCount: 12
+// Sample applications (platform-aware)
+const isElectron = !!(typeof window !== 'undefined' && window.electronAPI);
+const platform = isElectron && window.appInfo ? window.appInfo.platform : ((typeof navigator !== 'undefined' && navigator.platform) || '').toLowerCase();
+const sampleApplications = (() => {
+    if (platform === 'darwin' || platform.includes('mac')) {
+        return [
+            {
+                id: 'app-1',
+                name: 'Visual Studio Code',
+                path: '/Applications/Visual Studio Code.app',
+                category: 'Development',
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0iIzAwN0FDQyIvPgo8cGF0aCBkPSJNMTIgMTJIMzZWMzZIMTJWMTJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K',
+                description: 'Code editor',
+                lastUsed: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+                useCount: 15
+            },
+            {
+                id: 'app-2', 
+                name: 'Chrome',
+                path: '/Applications/Google Chrome.app',
+                category: 'Productivity',
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjAiIGZpbGw9IiNGRkQ5NEMiLz4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMTIiIGZpbGw9IiM0Mjg1RjQiLz4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iNiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+',
+                description: 'Web browser',
+                lastUsed: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+                useCount: 42
+            },
+            {
+                id: 'app-3',
+                name: 'Spotify',
+                path: '/Applications/Spotify.app',
+                category: 'Entertainment',
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjAiIGZpbGw9IiMxREI5NTQiLz4KPHBhdGggZD0iTTE2IDIwSDMyTTE2IDI0SDMyTTE2IDI4SDMyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+',
+                description: 'Music streaming',
+                lastUsed: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+                useCount: 28
+            }
+        ];
+    } else if (platform === 'win32' || platform.includes('win')) {
+        const pf = (typeof process !== 'undefined' && process.env && process.env.ProgramFiles) || 'C:\\Program Files';
+        const pf86 = (typeof process !== 'undefined' && process.env && process.env['ProgramFiles(x86)']) || 'C:\\Program Files (x86)';
+        return [
+            {
+                id: 'app-1',
+                name: 'Visual Studio Code',
+                path: `${pf}\\Microsoft VS Code\\Code.exe`,
+                category: 'Development',
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiByeD0iOCIgZmlsbD0iIzAwN0FDQyIvPgo8cGF0aCBkPSJNMTIgMTJIMzZWMzZIMTJWMTJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K',
+                description: 'Code editor',
+                lastUsed: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+                useCount: 15
+            },
+            {
+                id: 'app-2', 
+                name: 'Chrome',
+                path: `${pf86}\\Google\\Chrome\\Application\\chrome.exe`,
+                category: 'Productivity',
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjAiIGZpbGw9IiNGRkQ5NEMiLz4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMTIiIGZpbGw9IiM0Mjg1RjQiLz4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iNiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+',
+                description: 'Web browser',
+                lastUsed: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+                useCount: 42
+            },
+            {
+                id: 'app-3',
+                name: 'Spotify',
+                path: `${pf86}\\Spotify\\Spotify.exe`,
+                category: 'Entertainment',
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjAiIGZpbGw9IiMxREI5NTQiLz4KPHBhdGggZD0iTTE2IDIwSDMyTTE2IDI0SDMyTTE2IDI4SDMyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+',
+                description: 'Music streaming',
+                lastUsed: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+                useCount: 28
+            }
+        ];
     }
-];
+    // Fallback
+    return [];
+})();
 
 // Sample bookmarks
 const sampleBookmarks = [

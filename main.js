@@ -467,10 +467,14 @@ ipcMain.handle('scan-applications', async (event) => {
             }
         } else if (process.platform === 'win32') {
             // Windows: Scan common program directories
+            const os = require('os');
+            const programFiles = process.env['ProgramFiles'] || 'C:\\Program Files';
+            const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+            const localAppData = process.env['LOCALAPPDATA'] || path.join(os.homedir(), 'AppData', 'Local');
             const programDirs = [
-                'C:\\Program Files',
-                'C:\\Program Files (x86)',
-                path.join(require('os').homedir(), 'AppData\\Local\\Programs')
+                programFiles,
+                programFilesX86,
+                path.join(localAppData, 'Programs')
             ];
             
             // This would need more sophisticated scanning for Windows
