@@ -2482,7 +2482,7 @@ class AppCore {
                     ${Utils.isElectron() ? `
                     <button class="show-in-finder" data-app-path="${app.path}">
                         <i class="fas fa-folder"></i>
-                        <span>Show in Finder</span>
+                        <span>Show in File Manager</span>
                     </button>` : ''}
                     ${app.appStoreUrl ? `
                     <button class="view-app-store" data-url="${app.appStoreUrl}">
@@ -2568,9 +2568,9 @@ class AppCore {
                 try {
                     if (window.electronAPI && window.electronAPI.showItemInFolder) {
                         await window.electronAPI.showItemInFolder(app.path);
-                        notificationService.success(`Revealed ${app.name} in Finder`);
+                        notificationService.success(`Revealed ${app.name} in your file manager`);
                     } else {
-                        notificationService.warning('Show in Finder requires Electron environment');
+                        notificationService.warning('Reveal in file manager requires Electron environment');
                     }
                 } catch (error) {
                     console.error('Error showing in finder:', error);
@@ -3733,14 +3733,35 @@ class AppCore {
         }
         
         const appSuggestions = [
-            { name: 'Visual Studio Code', path: '/Applications/Visual Studio Code.app', category: 'Development' },
-            { name: 'Google Chrome', path: '/Applications/Google Chrome.app', category: 'Productivity' },
-            { name: 'Slack', path: '/Applications/Slack.app', category: 'Productivity' },
-            { name: 'Adobe Photoshop', path: '/Applications/Adobe Photoshop.app', category: 'Graphics' },
-            { name: 'Spotify', path: '/Applications/Spotify.app', category: 'Entertainment' }
-        ];
-        
-        suggestionsGrid.innerHTML = appSuggestions.map(app => `
+            // This base array is replaced below based on platform
+         ];
+        const platform = (window.appInfo && window.appInfo.platform) || (navigator.platform || '').toLowerCase();
+        let platformSuggestions;
+        if (platform === 'darwin' || platform.includes('mac')) {
+            platformSuggestions = [
+                { name: 'Visual Studio Code', path: '/Applications/Visual Studio Code.app', category: 'Development' },
+                { name: 'Google Chrome', path: '/Applications/Google Chrome.app', category: 'Productivity' },
+                { name: 'Slack', path: '/Applications/Slack.app', category: 'Productivity' },
+                { name: 'Adobe Photoshop', path: '/Applications/Adobe Photoshop 2024/Adobe Photoshop 2024.app', category: 'Graphics' },
+                { name: 'Spotify', path: '/Applications/Spotify.app', category: 'Entertainment' }
+            ];
+        } else if (platform === 'win32' || platform.includes('win')) {
+            const pf = (window.process && window.process.env && window.process.env.ProgramFiles) || 'C:\\\\Program Files';
+            const pf86 = (window.process && window.process.env && window.process.env['ProgramFiles(x86)']) || 'C:\\\\Program Files (x86)';
+            platformSuggestions = [
+                { name: 'Visual Studio Code', path: `${pf}\\\\Microsoft VS Code\\\\Code.exe`, category: 'Development' },
+                { name: 'Google Chrome', path: `${pf86}\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe`, category: 'Productivity' },
+                { name: 'Slack', path: `${pf86}\\\\Slack\\\\slack.exe`, category: 'Productivity' },
+                { name: 'Adobe Photoshop', path: `${pf}\\\\Adobe\\\\Adobe Photoshop 2024\\\\Photoshop.exe`, category: 'Graphics' },
+                { name: 'Spotify', path: `${pf86}\\\\Spotify\\\\Spotify.exe`, category: 'Entertainment' }
+            ];
+        } else {
+            // Fallback (Linux or unknown): leave empty or use generic names without paths
+            platformSuggestions = [];
+        }
+        const appSuggestionsFinal = platformSuggestions;
+ 
+        suggestionsGrid.innerHTML = appSuggestionsFinal.map(app => `
             <div class="suggestion-item" data-path="${app.path}">
                 <i class="fas fa-desktop suggestion-app-icon"></i>
                 <div class="suggestion-info">
