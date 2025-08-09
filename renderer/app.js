@@ -1388,6 +1388,71 @@ class AppCore {
                 await this.handleBrowseForApp();
             });
         }
+
+        // Enhance Add Bookmark form: handle type toggling and app scanning
+        const bookmarkTypeSelect = document.getElementById('bookmark-type');
+        const scanAppsBtn = document.getElementById('scan-apps-btn');
+        const urlLabel = document.getElementById('url-label');
+        const urlInput = document.getElementById('bookmark-url');
+        const urlHint = document.getElementById('url-hint');
+        const detectedProgramsList = document.getElementById('detected-programs');
+
+        const updateBookmarkTypeUI = () => {
+            const type = bookmarkTypeSelect?.value || 'website';
+            if (!urlLabel || !urlHint || !urlInput) return;
+
+            if (type === 'program') {
+                urlLabel.textContent = 'Application Path *';
+                urlInput.placeholder = '/Applications/Example.app';
+                urlHint.textContent = 'Path to the application executable';
+                if (scanAppsBtn) scanAppsBtn.classList.remove('hidden');
+            } else if (type === 'protocol') {
+                urlLabel.textContent = 'Custom Protocol URL *';
+                urlInput.placeholder = 'app://example';
+                urlHint.textContent = 'Enter a custom protocol like app://something';
+                if (scanAppsBtn) scanAppsBtn.classList.add('hidden');
+            } else {
+                urlLabel.textContent = 'URL *';
+                urlInput.placeholder = 'https://example.com';
+                urlHint.textContent = 'Enter the website URL';
+                if (scanAppsBtn) scanAppsBtn.classList.add('hidden');
+            }
+        };
+
+        if (bookmarkTypeSelect) {
+            bookmarkTypeSelect.addEventListener('change', updateBookmarkTypeUI);
+            updateBookmarkTypeUI();
+        }
+
+        if (scanAppsBtn) {
+            scanAppsBtn.addEventListener('click', async () => {
+                try {
+                    if (!Utils.isElectron() || !window.electronAPI?.scanApplications) {
+                        notificationService.warning('Application scanning requires Electron environment');
+                        return;
+                    }
+                    scanAppsBtn.disabled = true;
+                    scanAppsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning';
+                    const found = await window.electronAPI.scanApplications();
+                    if (detectedProgramsList) {
+                        detectedProgramsList.innerHTML = '';
+                        (found || []).forEach(app => {
+                            const option = document.createElement('option');
+                            option.value = app.path;
+                            option.label = app.name;
+                            detectedProgramsList.appendChild(option);
+                        });
+                    }
+                    notificationService.success(`Detected ${found?.length || 0} applications`);
+                } catch (err) {
+                    console.error('Scan apps failed:', err);
+                    notificationService.error('Failed to scan applications');
+                } finally {
+                    scanAppsBtn.disabled = false;
+                    scanAppsBtn.innerHTML = '<i class="fas fa-search"></i> Scan Apps';
+                }
+            });
+        }
     }
 
     setupAdminTabs() {
@@ -3090,30 +3155,217 @@ class AppCore {
     }
 
     loadManageContent() {
-        // Load bookmarks into management view
+        // Load bookmarks into management view with filters/sorting and bulk actions
         const managementList = document.getElementById('bookmarks-management-list');
-        if (managementList) {
-            const bookmarks = stateManager.getState().bookmarks;
-            managementList.innerHTML = '';
-            
-            bookmarks.forEach(bookmark => {
-                const item = document.createElement('div');
-                item.className = 'management-item';
-                item.innerHTML = `
-                    <input type="checkbox" class="bookmark-select" data-id="${bookmark.id}">
-                    <img src="${bookmark.icon}" alt="${bookmark.title}" class="management-icon">
-                    <div class="management-info">
-                        <div class="management-title">${bookmark.title}</div>
-                        <div class="management-url">${bookmark.url}</div>
-                        <div class="management-category">${bookmark.category}</div>
-                    </div>
-                    <div class="management-actions">
-                        <button class="btn-edit" data-id="${bookmark.id}"><i class="fas fa-edit"></i></button>
-                        <button class="btn-delete" data-id="${bookmark.id}"><i class="fas fa-trash"></i></button>
-                    </div>
-                `;
-                managementList.appendChild(item);
+        const searchInput = document.getElementById('admin-search');
+        const clearBtn = document.getElementById('admin-search-clear');
+        const categorySelect = document.getElementById('admin-filter-category');
+        const dateSelect = document.getElementById('admin-filter-date');
+        const sortSelect = document.getElementById('manage-sort');
+        const selectAll = document.getElementById('select-all-bookmarks');
+        const bulkBar = document.getElementById('bulk-actions');
+        const selectedCountEl = document.getElementById('selected-count');
+        const bulkDeleteBtn = document.getElementById('bulk-delete');
+        const bulkExportBtn = document.getElementById('bulk-export');
+        const bulkCategorizeBtn = document.getElementById('bulk-categorize');
+
+        if (!managementList) return;
+
+        // Build category filter options
+        if (categorySelect && !categorySelect.dataset.populated) {
+            const categories = stateManager.getState().categories || [];
+            const current = categorySelect.value;
+            categorySelect.innerHTML = '<option value="">All Categories</option>' +
+                categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            if (current) categorySelect.value = current;
+            categorySelect.dataset.populated = 'true';
+        }
+
+        // Collect filters
+        const searchTerm = (searchInput?.value || '').toLowerCase().trim();
+        const categoryFilter = categorySelect?.value || '';
+        const dateFilter = dateSelect?.value || '';
+
+        // Prepare dataset
+        let items = [...(stateManager.getState().bookmarks || [])];
+
+        // Apply filters
+        if (searchTerm) {
+            items = items.filter(b => (
+                b.title?.toLowerCase().includes(searchTerm) ||
+                b.url?.toLowerCase().includes(searchTerm) ||
+                b.category?.toLowerCase().includes(searchTerm) ||
+                (b.tags || []).some(t => t.toLowerCase().includes(searchTerm))
+            ));
+        }
+        if (categoryFilter) {
+            items = items.filter(b => (b.category || '').toLowerCase() === categoryFilter.toLowerCase());
+        }
+        if (dateFilter) {
+            const now = new Date();
+            items = items.filter(b => {
+                const created = new Date(b.createdAt);
+                if (isNaN(created.getTime())) return true;
+                switch (dateFilter) {
+                    case 'today': return created.toDateString() === now.toDateString();
+                    case 'week': {
+                        const diffDays = Math.floor((now - created) / 86400000);
+                        return diffDays <= 7;
+                    }
+                    case 'month': return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+                    case 'year': return created.getFullYear() === now.getFullYear();
+                    default: return true;
+                }
             });
+        }
+
+        // Sorting
+        const sortBy = sortSelect?.value || 'newest';
+        const sorted = [...items].sort((a, b) => {
+            switch (sortBy) {
+                case 'oldest': return new Date(a.createdAt) - new Date(b.createdAt);
+                case 'alphabetical': return (a.title || '').localeCompare(b.title || '');
+                case 'most-visited': return (b.visits || 0) - (a.visits || 0);
+                case 'category': return (a.category || '').localeCompare(b.category || '');
+                case 'newest':
+                default: return new Date(b.createdAt) - new Date(a.createdAt);
+            }
+        });
+
+        // Render list
+        managementList.innerHTML = '';
+        sorted.forEach(bookmark => {
+            const item = document.createElement('div');
+            item.className = 'management-item';
+            item.innerHTML = `
+                <label class="checkbox-container">
+                    <input type="checkbox" class="bookmark-select" data-id="${bookmark.id}">
+                    <span class="checkmark"></span>
+                </label>
+                <img src="${bookmark.icon}" alt="${bookmark.title}" class="management-icon">
+                <div class="management-info">
+                    <div class="management-title">${bookmark.title}</div>
+                    <div class="management-url">${bookmark.url}</div>
+                    <div class="management-category">${bookmark.category}</div>
+                </div>
+                <div class="management-actions">
+                    <button class="btn-edit" data-id="${bookmark.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn-delete" data-id="${bookmark.id}" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            managementList.appendChild(item);
+        });
+
+        // Helpers for selection
+        const updateBulkBar = () => {
+            const selected = managementList.querySelectorAll('.bookmark-select:checked');
+            const count = selected.length;
+            if (bulkBar) bulkBar.style.display = count > 0 ? 'flex' : 'none';
+            if (selectedCountEl) selectedCountEl.textContent = String(count);
+        };
+
+        // Wire selection listeners
+        managementList.querySelectorAll('.bookmark-select').forEach(cb => {
+            cb.addEventListener('change', updateBulkBar);
+        });
+        updateBulkBar();
+
+        if (selectAll && !selectAll.dataset.listenerAttached) {
+            selectAll.addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                managementList.querySelectorAll('.bookmark-select').forEach(cb => {
+                    cb.checked = checked;
+                });
+                updateBulkBar();
+            });
+            selectAll.dataset.listenerAttached = 'true';
+        }
+
+        // Single delete
+        managementList.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const id = btn.getAttribute('data-id');
+                const current = stateManager.getState().bookmarks;
+                const updated = current.filter(b => b.id !== id);
+                stateManager.setState({ bookmarks: updated });
+                stateManager.saveToStorage();
+                this.loadManageContent();
+                notificationService.success('Bookmark deleted');
+            });
+        });
+
+        // Bulk actions
+        if (bulkDeleteBtn && !bulkDeleteBtn.dataset.listenerAttached) {
+            bulkDeleteBtn.addEventListener('click', () => {
+                const selectedIds = Array.from(managementList.querySelectorAll('.bookmark-select:checked')).map(cb => cb.getAttribute('data-id'));
+                if (selectedIds.length === 0) return;
+                const current = stateManager.getState().bookmarks;
+                const updated = current.filter(b => !selectedIds.includes(b.id));
+                stateManager.setState({ bookmarks: updated });
+                stateManager.saveToStorage();
+                this.loadManageContent();
+                notificationService.success(`Deleted ${selectedIds.length} bookmarks`);
+            });
+            bulkDeleteBtn.dataset.listenerAttached = 'true';
+        }
+
+        if (bulkExportBtn && !bulkExportBtn.dataset.listenerAttached) {
+            bulkExportBtn.addEventListener('click', () => {
+                const selected = Array.from(managementList.querySelectorAll('.bookmark-select:checked')).map(cb => cb.getAttribute('data-id'));
+                const current = stateManager.getState().bookmarks;
+                const data = current.filter(b => selected.includes(b.id));
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `bookmarks-selected-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                notificationService.success(`Exported ${data.length} bookmarks`);
+            });
+            bulkExportBtn.dataset.listenerAttached = 'true';
+        }
+
+        if (bulkCategorizeBtn && !bulkCategorizeBtn.dataset.listenerAttached) {
+            bulkCategorizeBtn.addEventListener('click', async () => {
+                const selectedIds = Array.from(managementList.querySelectorAll('.bookmark-select:checked')).map(cb => cb.getAttribute('data-id'));
+                if (selectedIds.length === 0) return;
+                const newCategory = prompt('Enter category for selected bookmarks:');
+                if (!newCategory) return;
+                const current = stateManager.getState().bookmarks;
+                const updated = current.map(b => selectedIds.includes(b.id) ? { ...b, category: newCategory } : b);
+                stateManager.setState({ bookmarks: updated });
+                // Update categories list in state
+                bookmarkManager.updateCategories();
+                stateManager.saveToStorage();
+                this.loadManageContent();
+                notificationService.success(`Updated category for ${selectedIds.length} bookmarks`);
+            });
+            bulkCategorizeBtn.dataset.listenerAttached = 'true';
+        }
+
+        // Filters/search wiring (debounced)
+        const refreshManage = Utils.debounce(() => this.loadManageContent(), 200);
+        if (searchInput && !searchInput.dataset.listenerAttached) {
+            searchInput.addEventListener('input', refreshManage);
+            searchInput.dataset.listenerAttached = 'true';
+        }
+        if (clearBtn && !clearBtn.dataset.listenerAttached) {
+            clearBtn.addEventListener('click', () => { if (searchInput) { searchInput.value = ''; refreshManage(); } });
+            clearBtn.dataset.listenerAttached = 'true';
+        }
+        if (categorySelect && !categorySelect.dataset.filterListener) {
+            categorySelect.addEventListener('change', refreshManage);
+            categorySelect.dataset.filterListener = 'true';
+        }
+        if (dateSelect && !dateSelect.dataset.filterListener) {
+            dateSelect.addEventListener('change', refreshManage);
+            dateSelect.dataset.filterListener = 'true';
+        }
+        if (sortSelect && !sortSelect.dataset.filterListener) {
+            sortSelect.addEventListener('change', refreshManage);
+            sortSelect.dataset.filterListener = 'true';
         }
     }
 
@@ -3362,9 +3614,11 @@ class AppCore {
         if (Utils.isElectron() && window.electronAPI) {
             try {
                 notificationService.info('Checking for updates...');
-                
-                // Use the existing checkForUpdates method if available
-                if (this.checkForUpdates) {
+
+                // Prefer the UpdateManager if available
+                if (typeof updateManager?.checkForUpdates === 'function') {
+                    await updateManager.checkForUpdates(true);
+                } else if (this.checkForUpdates) {
                     await this.checkForUpdates(true);
                 } else {
                     // Fallback to direct API call
@@ -3372,10 +3626,7 @@ class AppCore {
                     if (result?.error) {
                         throw new Error(result.error);
                     }
-                    
-                    // Wait a moment to let the update handlers process
                     setTimeout(() => {
-                        // Only show success if no update was found
                         const versionStatus = document.getElementById('version-status');
                         if (versionStatus && versionStatus.textContent.includes('latest version')) {
                             notificationService.success('You are running the latest version!');
